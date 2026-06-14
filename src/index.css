@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+/* ============================================================
+   La Troncal — Design System
+   ============================================================ */
+
+@theme {
+  /* Color Palette — La Troncal Brand */
+  --color-teal: #00B4D8;
+  --color-teal-dark: #0096B4;
+  --color-teal-light: #33C3E0;
+  --color-teal-50: #E6F7FB;
+  --color-teal-100: #B3E8F2;
+  --color-green: #2ECC71;
+  --color-green-dark: #27AE60;
+  --color-green-light: #58D68D;
+  --color-white: #FFFFFF;
+  --color-gray-50: #F8F9FA;
+  --color-gray-100: #F0F1F3;
+  --color-gray-200: #E2E4E8;
+  --color-gray-300: #CDD0D5;
+  --color-gray-400: #A0A4AB;
+  --color-gray-500: #6C7380;
+  --color-gray-600: #4A5060;
+  --color-gray-700: #353A47;
+  --color-gray-800: #23272F;
+  --color-gray-900: #14171D;
+  --color-dark: #1A1A1A;
+
+  /* Semantic Colors */
+  --color-available: #2ECC71;
+  --color-sold: #EF4444;
+  --color-sold-light: #FEE2E2;
+  --color-reserved: #F59E0B;
+  --color-reserved-light: #FEF3C7;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #00B4D8;
+
+  /* Typography */
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+  --shadow-glow-teal: 0 0 20px rgba(0, 180, 216, 0.3);
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+}
+
+/* ============================================================
+   Base Styles
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-gray-800);
+  background-color: var(--color-white);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  color: var(--color-gray-900);
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-gray-100);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-300);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-400);
+}
+
+/* ============================================================
+   Glassmorphism Utilities
+   ============================================================ */
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(20, 23, 29, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 180, 216, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   Page Flip Overrides
+   ============================================================ */
+
+.stf__parent {
+  margin: 0 auto;
+}
+
+.stf__wrapper {
+  box-shadow: var(--shadow-xl) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* ============================================================
+   Gradient Utilities
+   ============================================================ */
+
+.gradient-teal {
+  background: linear-gradient(135deg, var(--color-teal) 0%, var(--color-teal-dark) 100%);
+}
+
+.gradient-hero {
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-900) 0%,
+    var(--color-gray-800) 40%,
+    var(--color-teal-dark) 100%
+  );
+}
+
+.text-gradient-teal {
+  background: linear-gradient(135deg, var(--color-teal) 0%, var(--color-green) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

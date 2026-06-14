@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // ⚠️ REGLAS DE DESARROLLO (Modo Prueba)
+    match /{allPaths=**} {
+      allow read, write: if request.time < timestamp.date(2026, 7, 15);
+    }
+  }
+}

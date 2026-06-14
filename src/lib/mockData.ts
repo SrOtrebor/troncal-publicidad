@@ -1,0 +1,211 @@
+// ============================================================
+// Mock Data — For development without Firebase
+// ============================================================
+
+import type { Edition, Slot, PricingConfig, AppSettings, Notification } from '../types';
+
+// --- Pricing ---
+export const mockPricing: PricingConfig = {
+  full: 45000,
+  half: 28000,
+  quarter: 16000,
+  eighth: 9000,
+  updatedAt: new Date(),
+};
+
+// --- Settings ---
+export const mockSettings: AppSettings = {
+  maxFileSize: 50,
+  allowedFormats: ['jpg', 'jpeg', 'tiff', 'tif', 'png'],
+  minDPI: 300,
+  activeEditionId: 'ed-001',
+  showSoldAds: true,
+  adminEmail: 'admin@latroncal.com.ar',
+};
+
+// --- Edition ---
+export const mockEdition: Edition = {
+  id: 'ed-001',
+  title: 'Edición Julio-Agosto 2026',
+  number: 42,
+  status: 'active',
+  period: 'Jul-Ago 2026',
+  publicationDate: new Date('2026-07-15'),
+  printDeadline: new Date('2026-07-01'),
+  printDate: new Date('2026-07-08'),
+  pageCount: 12,
+  totalSlots: 8,
+  soldSlots: 3,
+  autoCloseOnDeadline: true,
+  createdAt: new Date('2026-06-01'),
+  updatedAt: new Date(),
+};
+
+// --- Slots ---
+export const mockSlots: Slot[] = [
+  // Page 1 — Cover (no ads)
+  // Page 2
+  {
+    id: 'slot-p02-full',
+    editionId: 'ed-001',
+    pageNumber: 2,
+    position: 'full',
+    size: 'full',
+    dimensions: { width: 12.6, height: 18.4 },
+    price: 45000,
+    status: 'sold',
+    clientInfo: { name: 'Casino Nordelta', email: 'mkt@casinord.com', phone: '1155551234' },
+    paymentId: 'pay-001',
+    fileUrl: '',
+    renamedFileName: 'slot-p02-full_CasinoNordelta_20260610.jpg',
+    destinationLink: 'https://www.casinord.com.ar',
+    linkType: 'web',
+    createdAt: new Date('2026-06-10'),
+    updatedAt: new Date('2026-06-10'),
+  },
+  // Page 3
+  {
+    id: 'slot-p03-half-top',
+    editionId: 'ed-001',
+    pageNumber: 3,
+    position: 'top',
+    size: 'half',
+    dimensions: { width: 12.6, height: 9 },
+    price: 28000,
+    status: 'available',
+    createdAt: new Date('2026-06-01'),
+    updatedAt: new Date('2026-06-01'),
+  },
+  {
+    id: 'slot-p03-quarter-bl',
+    editionId: 'ed-001',
+    pageNumber: 3,
+    position: 'bottom-left',
+    size: 'quarter',
+    dimensions: { width: 6.15, height: 9 },
+    price: 16000,
+    status: 'sold',
+    clientInfo: { name: 'Escuelas del Sol', email: 'info@escuelasdelsol.com', phone: '1155559876' },
+    paymentId: 'pay-002',
+    fileUrl: '',
+    renamedFileName: 'slot-p03-quarter-bl_EscuelasdelSol_20260611.jpg',
+    destinationLink: 'https://www.escuelasdelsol.com.ar',
+    linkType: 'web',
+    createdAt: new Date('2026-06-11'),
+    updatedAt: new Date('2026-06-11'),
+  },
+  {
+    id: 'slot-p03-quarter-br',
+    editionId: 'ed-001',
+    pageNumber: 3,
+    position: 'bottom-right',
+    size: 'quarter',
+    dimensions: { width: 6.15, height: 9 },
+    price: 16000,
+    status: 'available',
+    createdAt: new Date('2026-06-01'),
+    updatedAt: new Date('2026-06-01'),
+  },
+  // Page 4
+  {
+    id: 'slot-p04-half-top',
+    editionId: 'ed-001',
+    pageNumber: 4,
+    position: 'top',
+    size: 'half',
+    dimensions: { width: 12.6, height: 9 },
+    price: 28000,
+    status: 'available',
+    createdAt: new Date('2026-06-01'),
+    updatedAt: new Date('2026-06-01'),
+  },
+  {
+    id: 'slot-p04-eighth-bl',
+    editionId: 'ed-001',
+    pageNumber: 4,
+    position: 'bottom-left',
+    size: 'eighth',
+    dimensions: { width: 6.15, height: 4.37 },
+    price: 9000,
+    status: 'sold',
+    clientInfo: { name: 'Veterinaria Nordelta', email: 'vet@nordelta.com', phone: '1155553333' },
+    paymentId: 'pay-003',
+    fileUrl: '',
+    renamedFileName: 'slot-p04-eighth-bl_VeterinariaNordelta_20260612.jpg',
+    destinationLink: 'https://wa.me/5491155553333',
+    linkType: 'whatsapp',
+    createdAt: new Date('2026-06-12'),
+    updatedAt: new Date('2026-06-12'),
+  },
+  {
+    id: 'slot-p04-eighth-br',
+    editionId: 'ed-001',
+    pageNumber: 4,
+    position: 'bottom-right',
+    size: 'eighth',
+    dimensions: { width: 6.15, height: 4.37 },
+    price: 9000,
+    status: 'available',
+    createdAt: new Date('2026-06-01'),
+    updatedAt: new Date('2026-06-01'),
+  },
+  // Page 5
+  {
+    id: 'slot-p05-full',
+    editionId: 'ed-001',
+    pageNumber: 5,
+    position: 'full',
+    size: 'full',
+    dimensions: { width: 12.6, height: 18.4 },
+    price: 45000,
+    status: 'available',
+    createdAt: new Date('2026-06-01'),
+    updatedAt: new Date('2026-06-01'),
+  },
+];
+
+// --- Notifications ---
+export const mockNotifications: Notification[] = [
+  {
+    id: 'notif-001',
+    type: 'sale',
+    editionId: 'ed-001',
+    slotId: 'slot-p02-full',
+    clientName: 'Casino Nordelta',
+    clientEmail: 'mkt@casinord.com',
+    slotSize: 'full',
+    amount: 45000,
+    message: 'Casino Nordelta compró 1 pág. entera - Ed. Jul-Ago 2026',
+    read: true,
+    createdAt: new Date('2026-06-10T14:30:00'),
+    emailSent: true,
+  },
+  {
+    id: 'notif-002',
+    type: 'sale',
+    editionId: 'ed-001',
+    slotId: 'slot-p03-quarter-bl',
+    clientName: 'Escuelas del Sol',
+    clientEmail: 'info@escuelasdelsol.com',
+    slotSize: 'quarter',
+    amount: 16000,
+    message: 'Escuelas del Sol compró ¼ de pág. - Ed. Jul-Ago 2026',
+    read: false,
+    createdAt: new Date('2026-06-11T10:15:00'),
+    emailSent: true,
+  },
+  {
+    id: 'notif-003',
+    type: 'sale',
+    editionId: 'ed-001',
+    slotId: 'slot-p04-eighth-bl',
+    clientName: 'Veterinaria Nordelta',
+    clientEmail: 'vet@nordelta.com',
+    slotSize: 'eighth',
+    amount: 9000,
+    message: 'Veterinaria Nordelta compró ⅛ de pág. - Ed. Jul-Ago 2026',
+    read: false,
+    createdAt: new Date('2026-06-12T16:45:00'),
+    emailSent: true,
+  },
+];
