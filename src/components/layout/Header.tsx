@@ -25,18 +25,8 @@ export function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-full gradient-teal flex items-center justify-center shadow-sm group-hover:shadow-glow-teal transition-shadow duration-300">
-                <span className="text-white font-bold text-sm">LT</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-bold text-gray-900 font-[family-name:var(--font-display)] leading-tight">
-                  La Troncal
-                </span>
-                <span className="text-[10px] text-gray-400 uppercase tracking-widest leading-tight">
-                  Publicidad
-                </span>
-              </div>
+            <Link to="/" className="flex items-center group">
+              <img src="/logo-latroncal.svg" alt="La Troncal" className="h-10 w-auto" />
             </Link>
 
             {/* Desktop Nav */}

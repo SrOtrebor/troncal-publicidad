@@ -9,20 +9,46 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { mockEdition, mockSlots, mockPricing, mockNotifications, mockSettings } from '../../lib/mockData';
+import { useActiveEdition, useSlots, usePricing, useNotifications, useSettings } from '../../hooks/useFirebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { SLOT_DIMENSIONS } from '../../types';
-import type { SlotSize, PricingConfig } from '../../types';
+import type { SlotSize, PricingConfig, Slot, Notification } from '../../types';
 
 type AdminView = 'overview' | 'editions' | 'slots' | 'materials' | 'pricing' | 'export';
 
 export default function AdminDashboard() {
+  const { edition, loading: loadingEd } = useActiveEdition();
+  const { slots, loading: loadingSlots } = useSlots(edition?.id);
+  const { pricing, loading: loadingPricing } = usePricing();
+  const { notifications, loading: loadingNotifs } = useNotifications();
+  const { settings, loading: loadingSettings } = useSettings();
+
   const [currentView, setCurrentView] = useState<AdminView>('overview');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showSoldAds, setShowSoldAds] = useState(mockSettings.showSoldAds);
-  const [pricing, setPricing] = useState<PricingConfig>(mockPricing);
+  const [localPricing, setLocalPricing] = useState<PricingConfig | null>(null);
   const [pricingSaved, setPricingSaved] = useState(false);
+  const [optimisticShowSoldAds, setOptimisticShowSoldAds] = useState<boolean | null>(null);
 
-  const unreadCount = mockNotifications.filter((n) => !n.read).length;
+  // Initialize local states once data is loaded
+  if (!localPricing && pricing) {
+    setLocalPricing(pricing);
+  }
+
+  // Clear optimistic state when settings from Firebase matches it
+  if (optimisticShowSoldAds !== null && settings?.showSoldAds === optimisticShowSoldAds) {
+    setOptimisticShowSoldAds(null);
+  }
+
+  const displayShowSoldAds = optimisticShowSoldAds !== null ? optimisticShowSoldAds : settings?.showSoldAds;
+
+  const loading = loadingEd || loadingSlots || loadingPricing || loadingNotifs || loadingSettings;
+
+  if (loading || !edition || !pricing || !settings || !localPricing) {
+    return <div className="min-h-screen flex items-center justify-center">Cargando dashboard...</div>;
+  }
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const sidebarLinks: { key: AdminView; label: string; icon: React.ReactNode }[] = [
     { key: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
@@ -33,13 +59,13 @@ export default function AdminDashboard() {
     { key: 'export', label: 'Exportar', icon: <Download size={18} /> },
   ];
 
-  const soldSlots = mockSlots.filter((s) => s.status === 'sold');
-  const availableSlots = mockSlots.filter((s) => s.status === 'available');
+  const soldSlots = slots.filter((s) => s.status === 'sold');
+  const availableSlots = slots.filter((s) => s.status === 'available');
   const totalRevenue = soldSlots.reduce((sum, s) => sum + s.price, 0);
 
   // Days until print deadline
   const daysUntilDeadline = Math.ceil(
-    (mockEdition.printDeadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    (edition.printDeadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
 
   return (
@@ -49,9 +75,7 @@ export default function AdminDashboard() {
         {/* Logo */}
         <div className="p-5 border-b border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full gradient-teal flex items-center justify-center">
-              <span className="text-white font-bold text-xs">LT</span>
-            </div>
+            <img src="/favicon.svg" alt="La Troncal" className="w-9 h-9" />
             <div>
               <p className="font-bold text-sm">La Troncal</p>
               <p className="text-[10px] text-gray-400 uppercase tracking-wider">Admin Panel</p>
@@ -94,19 +118,25 @@ export default function AdminDashboard() {
         <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
           <div>
             <h1 className="text-lg font-bold text-gray-900">{sidebarLinks.find((l) => l.key === currentView)?.label}</h1>
-            <p className="text-xs text-gray-400">{mockEdition.title}</p>
+            <p className="text-xs text-gray-400">{edition.title}</p>
           </div>
           <div className="flex items-center gap-3">
             {/* Show sold ads toggle */}
             <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
               <span className="text-xs text-gray-500">Mostrar anuncios</span>
               <button
-                onClick={() => setShowSoldAds(!showSoldAds)}
-                className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${showSoldAds ? 'bg-green' : 'bg-gray-300'}`}
+                onClick={async () => {
+                  const newValue = !displayShowSoldAds;
+                  setOptimisticShowSoldAds(newValue);
+                  await updateDoc(doc(db, 'config', 'settings'), {
+                    showSoldAds: newValue
+                  });
+                }}
+                className={`relative w-10 h-5 shrink-0 rounded-full transition-colors duration-200 ${displayShowSoldAds ? 'bg-green' : 'bg-gray-300'}`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${showSoldAds ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <span className={`absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${displayShowSoldAds ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
-              {showSoldAds ? <Eye size={14} className="text-green" /> : <EyeOff size={14} className="text-gray-400" />}
+              {displayShowSoldAds ? <Eye size={14} className="text-green" /> : <EyeOff size={14} className="text-gray-400" />}
             </div>
 
             {/* Notifications */}
@@ -135,7 +165,7 @@ export default function AdminDashboard() {
                     <button className="text-xs text-teal hover:underline">Marcar todas como leídas</button>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
-                    {mockNotifications.map((notif) => (
+                    {notifications.map((notif) => (
                       <div
                         key={notif.id}
                         className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${
@@ -180,21 +210,25 @@ export default function AdminDashboard() {
               availableCount={availableSlots.length}
               totalRevenue={totalRevenue}
               daysUntilDeadline={daysUntilDeadline}
-              edition={mockEdition}
+              edition={edition}
+              notifications={notifications}
             />
           )}
           {currentView === 'pricing' && (
             <PricingView
-              pricing={pricing}
-              setPricing={setPricing}
+              pricing={localPricing}
+              setPricing={setLocalPricing}
               saved={pricingSaved}
-              onSave={() => { setPricingSaved(true); setTimeout(() => setPricingSaved(false), 3000); }}
+              onSave={async () => {
+                await updateDoc(doc(db, 'config', 'pricing'), localPricing as any);
+                setPricingSaved(true); setTimeout(() => setPricingSaved(false), 3000); 
+              }}
             />
           )}
-          {currentView === 'editions' && <EditionsView />}
-          {currentView === 'slots' && <SlotsView slots={mockSlots} />}
+          {currentView === 'editions' && <EditionsView edition={edition} />}
+          {currentView === 'slots' && <SlotsView slots={slots} />}
           {currentView === 'materials' && <MaterialsView slots={soldSlots} />}
-          {currentView === 'export' && <ExportView />}
+          {currentView === 'export' && <ExportView edition={edition} />}
         </div>
       </div>
     </div>
@@ -204,7 +238,7 @@ export default function AdminDashboard() {
 // =========================================
 // Overview View
 // =========================================
-function OverviewView({ soldCount, availableCount, totalRevenue, daysUntilDeadline, edition }: any) {
+function OverviewView({ soldCount, availableCount, totalRevenue, daysUntilDeadline, edition, notifications }: any) {
   const stats = [
     { label: 'Espacios vendidos', value: soldCount, icon: <Package size={20} />, color: 'text-green', bg: 'bg-green-50' },
     { label: 'Espacios disponibles', value: availableCount, icon: <Grid3x3 size={20} />, color: 'text-teal', bg: 'bg-teal-50' },
@@ -299,7 +333,7 @@ function OverviewView({ soldCount, availableCount, totalRevenue, daysUntilDeadli
               </tr>
             </thead>
             <tbody>
-              {mockNotifications.map((n) => (
+              {notifications.map((n: Notification) => (
                 <tr key={n.id} className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-800">{n.clientName}</td>
                   <td className="py-3 text-gray-600">{SLOT_DIMENSIONS[n.slotSize].label}</td>
@@ -374,7 +408,7 @@ function PricingView({ pricing, setPricing, saved, onSave }: { pricing: PricingC
 // =========================================
 // Editions View
 // =========================================
-function EditionsView() {
+function EditionsView({ edition }: { edition: any }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -397,11 +431,11 @@ function EditionsView() {
             </thead>
             <tbody>
               <tr className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="py-3 font-medium">{mockEdition.title}</td>
-                <td className="py-3"><Badge variant="teal">{mockEdition.period}</Badge></td>
+                <td className="py-3 font-medium">{edition.title}</td>
+                <td className="py-3"><Badge variant="teal">{edition.period}</Badge></td>
                 <td className="py-3"><Badge variant="green" dot>Activa</Badge></td>
-                <td className="py-3 text-gray-600">{mockEdition.printDeadline.toLocaleDateString('es-AR')}</td>
-                <td className="py-3 text-gray-600">{mockEdition.soldSlots}/{mockEdition.totalSlots}</td>
+                <td className="py-3 text-gray-600">{edition.printDeadline.toLocaleDateString('es-AR')}</td>
+                <td className="py-3 text-gray-600">{edition.soldSlots}/{edition.totalSlots}</td>
                 <td className="py-3">
                   <Button variant="ghost" size="sm">Editar</Button>
                 </td>
@@ -417,7 +451,7 @@ function EditionsView() {
 // =========================================
 // Slots View
 // =========================================
-function SlotsView({ slots }: { slots: typeof mockSlots }) {
+function SlotsView({ slots }: { slots: Slot[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -478,7 +512,7 @@ function SlotsView({ slots }: { slots: typeof mockSlots }) {
 // =========================================
 // Materials View
 // =========================================
-function MaterialsView({ slots }: { slots: typeof mockSlots }) {
+function MaterialsView({ slots }: { slots: Slot[] }) {
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-bold text-gray-900">Materiales Recibidos</h2>
@@ -515,7 +549,7 @@ function MaterialsView({ slots }: { slots: typeof mockSlots }) {
 // =========================================
 // Export View
 // =========================================
-function ExportView() {
+function ExportView({ edition }: { edition: any }) {
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
@@ -554,7 +588,7 @@ function ExportView() {
 
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500">
-            <p>{mockEdition.soldSlots} archivos · {mockEdition.title}</p>
+            <p>{edition?.soldSlots} archivos · {edition?.title}</p>
           </div>
           <Button onClick={handleExport} loading={exporting} icon={<Download size={16} />} size="lg">
             Descargar ZIP

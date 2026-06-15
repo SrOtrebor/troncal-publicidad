@@ -6,7 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { SLOT_DIMENSIONS } from '../types';
 import type { SlotSize } from '../types';
-import { mockPricing } from '../lib/mockData';
+import { usePricing } from '../hooks/useFirebase';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -22,6 +22,16 @@ const stagger = {
 };
 
 export default function Landing() {
+  const { pricing, loading } = usePricing();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-teal font-medium">Cargando la Troncal...</div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* ================================================================
@@ -272,7 +282,7 @@ export default function Landing() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {(Object.keys(SLOT_DIMENSIONS) as SlotSize[]).map((size, i) => {
               const dim = SLOT_DIMENSIONS[size];
-              const price = mockPricing[size];
+              const price = pricing ? pricing[size] : 0;
               const isFeatured = size === 'full';
 
               return (

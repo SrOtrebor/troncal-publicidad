@@ -7,13 +7,18 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { SLOT_DIMENSIONS } from '../types';
 import type { ClientInfo, CheckoutStep } from '../types';
-import { mockSlots, mockPricing } from '../lib/mockData';
+import { useActiveEdition, useSlots, usePricing } from '../hooks/useFirebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { tokenizeCard, processPayment } from '../lib/payway';
 import type { CardData } from '../lib/payway';
 
 export default function Checkout() {
   const { slotId } = useParams<{ slotId: string }>();
-  const slot = mockSlots.find((s) => s.id === slotId);
+  const { edition } = useActiveEdition();
+  const { slots, loading: loadingSlots } = useSlots(edition?.id);
+  const { pricing, loading: loadingPricing } = usePricing();
+  const slot = slots.find((s) => s.id === slotId);
   const [step, setStep] = useState<CheckoutStep>('summary');
   const [clientInfo, setClientInfo] = useState<ClientInfo>({ name: '', email: '', phone: '' });
   const [cardData, setCardData] = useState<CardData>({
@@ -23,7 +28,15 @@ export default function Checkout() {
   const [paymentResult, setPaymentResult] = useState<'approved' | 'rejected' | null>(null);
   const [paymentError, setPaymentError] = useState('');
 
-  if (!slot) {
+  if (loadingSlots || loadingPricing) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="text-teal font-medium">Cargando detalles de pago...</div>
+      </div>
+    );
+  }
+
+  if (!slot || !pricing) {
     return (
       <div className="py-20 text-center">
         <h2 className="text-2xl font-bold text-gray-900">Espacio no encontrado</h2>
@@ -36,7 +49,7 @@ export default function Checkout() {
   }
 
   const dim = SLOT_DIMENSIONS[slot.size];
-  const price = mockPricing[slot.size];
+  const price = pricing[slot.size];
 
   const steps: { key: CheckoutStep; label: string; icon: React.ReactNode }[] = [
     { key: 'summary', label: 'Datos', icon: <User size={16} /> },
@@ -49,9 +62,15 @@ export default function Checkout() {
     setPaymentError('');
     try {
       const token = await tokenizeCard(cardData);
-      const result = await processPayment(token.token, price, clientInfo.email);
+      const result = await processPayment(token.token, price, clientInfo.email, slot.id);
       if (result.status === 'approved') {
         setPaymentResult('approved');
+        // Actualizar en Firebase
+        await updateDoc(doc(db, 'slots', slot.id), {
+          status: 'sold',
+          clientInfo,
+          paymentId: result.transactionId || 'payway_mock'
+        });
         setTimeout(() => setStep('upload'), 1500);
       } else {
         setPaymentResult('rejected');

@@ -85,8 +85,8 @@ const MagazinePage = forwardRef<HTMLDivElement, {
       {isCover ? (
         // Cover page
         <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-          <div className="w-16 h-16 rounded-full gradient-teal flex items-center justify-center mb-4 shadow-md">
-            <span className="text-white font-bold text-xl">LT</span>
+          <div className="text-center">
+            <img src="/favicon.svg" alt="La Troncal" className="w-16 h-16 mx-auto mb-4" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 font-[family-name:var(--font-display)]">La Troncal</h2>
           <p className="text-sm text-gray-500 mt-1">Edición Jul-Ago 2026</p>

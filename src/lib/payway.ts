@@ -4,6 +4,8 @@
 // This module simulates the Payway payment flow.
 // Replace with real Payway SDK when credentials are available.
 // SDK Frontend: https://github.com/payway-ar/sdk-javascript-ventaonline
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './firebase';
 
 export interface CardData {
   cardNumber: string;
@@ -62,26 +64,38 @@ export async function tokenizeCard(cardData: CardData): Promise<TokenResponse> {
 export async function processPayment(
   token: string,
   amount: number,
-  _email: string
+  email: string,
+  slotId: string
 ): Promise<PaymentResult> {
-  await simulateDelay(2000);
+  
+  // Llamamos a la Cloud Function segura
+  const processPaywayPayment = httpsCallable(functions, 'processPaywayPayment');
 
-  // Simulate: cards ending in 0000 are rejected (for testing)
-  if (token.endsWith('0000')) {
+  try {
+    const result = await processPaywayPayment({
+      token,
+      amount,
+      email,
+      slotId
+    });
+
+    const data = result.data as any;
+    
+    return {
+      status: data.status,
+      transactionId: data.transactionId || '',
+      message: data.message,
+      amount,
+    };
+  } catch (error: any) {
+    console.error("Error al procesar pago en Cloud Function:", error);
     return {
       status: 'rejected',
       transactionId: '',
-      message: 'Pago rechazado. Intentá con otra tarjeta.',
+      message: 'Hubo un error de conexión al procesar el pago.',
       amount,
     };
   }
-
-  return {
-    status: 'approved',
-    transactionId: `MOCK_TXN_${Date.now()}`,
-    message: 'Pago aprobado exitosamente',
-    amount,
-  };
 }
 
 function detectCardBrand(cardNumber: string): string {

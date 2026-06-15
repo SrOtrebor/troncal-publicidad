@@ -1,8 +1,23 @@
 import { motion } from 'framer-motion';
 import { MagazineViewer } from '../components/magazine/MagazineViewer';
-import { mockSlots, mockPricing, mockEdition, mockSettings } from '../lib/mockData';
+import { useActiveEdition, useSlots, usePricing, useSettings } from '../hooks/useFirebase';
 
 export default function SelectSlot() {
+  const { edition, loading: loadingEd } = useActiveEdition();
+  const { slots, loading: loadingSlots } = useSlots(edition?.id);
+  const { pricing, loading: loadingPricing } = usePricing();
+  const { settings, loading: loadingSettings } = useSettings();
+
+  const loading = loadingEd || loadingSlots || loadingPricing || loadingSettings;
+
+  if (loading || !edition || !pricing || !settings) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="text-teal font-medium">Cargando espacios interactivos...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,7 +37,7 @@ export default function SelectSlot() {
           </p>
           <div className="mt-4 inline-flex items-center gap-2 bg-teal-50 text-teal-dark px-4 py-2 rounded-full text-sm font-medium">
             <span className="w-2 h-2 bg-teal rounded-full animate-pulse-soft" />
-            {mockEdition.title} — {mockEdition.soldSlots} de {mockEdition.totalSlots} espacios vendidos
+            {edition.title} — {edition.soldSlots} de {edition.totalSlots} espacios vendidos
           </div>
         </motion.div>
 
@@ -33,10 +48,10 @@ export default function SelectSlot() {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <MagazineViewer
-            slots={mockSlots}
-            pricing={mockPricing}
-            showSoldAds={mockSettings.showSoldAds}
-            pageCount={mockEdition.pageCount}
+            slots={slots}
+            pricing={pricing}
+            showSoldAds={settings.showSoldAds}
+            pageCount={edition.pageCount}
           />
         </motion.div>
 

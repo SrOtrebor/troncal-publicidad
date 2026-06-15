@@ -10,9 +10,7 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full gradient-teal flex items-center justify-center">
-                <span className="text-white font-bold text-sm">LT</span>
-              </div>
+              <img src="/favicon.svg" alt="La Troncal" className="w-10 h-10" />
               <div>
                 <p className="text-white font-bold text-lg font-[family-name:var(--font-display)]">La Troncal</p>
                 <p className="text-xs text-gray-500 uppercase tracking-widest">Publicidad</p>

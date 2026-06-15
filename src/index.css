@@ -6,11 +6,11 @@
 
 @theme {
   /* Color Palette — La Troncal Brand */
-  --color-teal: #00B4D8;
-  --color-teal-dark: #0096B4;
-  --color-teal-light: #33C3E0;
-  --color-teal-50: #E6F7FB;
-  --color-teal-100: #B3E8F2;
+  --color-teal: #27A4A1;
+  --color-teal-dark: #1D807E;
+  --color-teal-light: #3EBEBB;
+  --color-teal-50: #E9F6F6;
+  --color-teal-100: #C7EAE9;
   --color-green: #2ECC71;
   --color-green-dark: #27AE60;
   --color-green-light: #58D68D;
@@ -62,29 +62,31 @@
    Base Styles
    ============================================================ */
 
-* {
-  box-sizing: border-box;
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-html {
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-body {
-  font-family: var(--font-body);
-  color: var(--color-gray-800);
-  background-color: var(--color-white);
-  line-height: 1.6;
-  margin: 0;
-  padding: 0;
-}
+  body {
+    font-family: var(--font-body);
+    color: var(--color-gray-800);
+    background-color: var(--color-white);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+  }
 
-h1, h2, h3, h4 {
-  font-family: var(--font-display);
-  line-height: 1.2;
-  color: var(--color-gray-900);
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    line-height: 1.2;
+    color: var(--color-gray-900);
+  }
 }
 
 /* ============================================================

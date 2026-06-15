@@ -11,15 +11,22 @@ Plataforma web integral para automatizar la venta, cobro y recepción de archivo
 
 ---
 
-## 🛠️ Estado Actual del Proyecto (En Desarrollo)
+## 🛠️ Estado Actual del Proyecto (Junio 2026)
 
-Actualmente, **toda la interfaz gráfica y los flujos de usuario están terminados al 100%** utilizando datos simulados (`mockData`). Se ha configurado Firebase y nos encontramos en medio de la transición para usar la base de datos real en la nube.
+Actualmente, **la base de datos y la plataforma web están conectadas al 100% con Firebase**. Atrás han quedado los datos simulados: los espacios, precios y notificaciones se gestionan en tiempo real. 
 
-### Tareas Inmediatas Pendientes (Punto de Retorno):
-1. Publicar las reglas de seguridad de Firestore (ver `firestore.rules`).
-2. Levantar el proyecto (`npm run dev`), entrar a `/admin` y presionar el botón **"Seed Firebase DB"**.
-3. Empezar a cambiar el código fuente de los componentes para que lean de la base de datos real en vez del archivo local de mock.
+Además, se ha configurado la infraestructura Backend (Firebase Cloud Functions) lista para recibir las credenciales de producción de **Payway**.
 
+### Hitos completados:
+- [x] Conexión bidireccional en tiempo real con Firestore para el Panel de Administrador y la Tienda.
+- [x] Estructura segura del servidor de pagos armada (Cloud Functions en Node 22).
+- [x] Adaptación completa del diseño visual a la paleta de colores oficial de `latroncal.com.ar`.
+- [x] Integración de los logotipos vectoriales de la marca.
+
+### Próximos pasos pendientes (Punto de Retorno):
+1. **Seguridad del Panel:** Configurar Firebase Authentication para que solo el dueño pueda entrar al `/admin`.
+2. **Archivos a la Nube:** Conectar el formulario final del cliente para que envíe sus diseños de anuncios a Firebase Storage.
+3. **Credenciales Payway:** Esperar las llaves de desarrollo de Payway para conectarlas en `functions/src/index.ts` y activar los pagos reales.
 ---
 
 ## 📁 Archivos de Configuración Importantes

@@ -1,0 +1,128 @@
+import { useState, useEffect } from 'react';
+import { doc, collection, onSnapshot, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import type { Edition, PricingConfig, AppSettings, Slot, Notification } from '../types';
+
+// Utility to convert Firestore timestamps to JS Dates
+const convertTimestamps = (data: any): any => {
+  if (!data) return data;
+  if (data instanceof Timestamp) return data.toDate();
+  if (Array.isArray(data)) return data.map(convertTimestamps);
+  if (typeof data === 'object') {
+    const converted: any = {};
+    for (const key in data) {
+      converted[key] = convertTimestamps(data[key]);
+    }
+    return converted;
+  }
+  return data;
+};
+
+export function usePricing() {
+  const [pricing, setPricing] = useState<PricingConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'config', 'pricing'), (doc) => {
+      if (doc.exists()) {
+        setPricing(convertTimestamps(doc.data()) as PricingConfig);
+      }
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  return { pricing, loading };
+}
+
+export function useSettings() {
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'config', 'settings'), (doc) => {
+      if (doc.exists()) {
+        setSettings(convertTimestamps(doc.data()) as AppSettings);
+      }
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  return { settings, loading };
+}
+
+export function useEdition(editionId?: string) {
+  const [edition, setEdition] = useState<Edition | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!editionId) {
+      setLoading(false);
+      return;
+    }
+    const unsub = onSnapshot(doc(db, 'editions', editionId), (doc) => {
+      if (doc.exists()) {
+        setEdition({ id: doc.id, ...convertTimestamps(doc.data()) } as Edition);
+      }
+      setLoading(false);
+    });
+    return unsub;
+  }, [editionId]);
+
+  return { edition, loading };
+}
+
+export function useActiveEdition() {
+  const { settings, loading: loadingSettings } = useSettings();
+  const { edition, loading: loadingEdition } = useEdition(settings?.activeEditionId);
+
+  return { 
+    edition, 
+    loading: loadingSettings || loadingEdition 
+  };
+}
+
+export function useSlots(editionId?: string) {
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!editionId) {
+      setLoading(false);
+      return;
+    }
+    const q = query(collection(db, 'slots'), where('editionId', '==', editionId));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const slotsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...convertTimestamps(doc.data())
+      })) as Slot[];
+      setSlots(slotsData);
+      setLoading(false);
+    });
+    return unsub;
+  }, [editionId]);
+
+  return { slots, loading };
+}
+
+export function useNotifications() {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const notifs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...convertTimestamps(doc.data())
+      })) as Notification[];
+      setNotifications(notifs);
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  return { notifications, loading };
+}
