@@ -4,25 +4,111 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, BookOpen, Grid3x3, Image, Download, DollarSign,
   Bell, Settings, LogOut, ChevronDown, Plus, Eye, EyeOff,
-  Printer, Calendar, TrendingUp, Users, Package,
+  Printer, Calendar, TrendingUp, Users, Package, Trash2
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { useActiveEdition, useSlots, usePricing, useNotifications, useSettings } from '../../hooks/useFirebase';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { useActiveEdition, useSlots, usePricing, useNotifications, useSettings, useClients, useAuth } from '../../hooks/useFirebase';
+import { doc, updateDoc, deleteField } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { db, auth } from '../../lib/firebase';
 import { SLOT_DIMENSIONS } from '../../types';
-import type { SlotSize, PricingConfig, Slot, Notification } from '../../types';
+import type { SlotSize, PricingConfig, Slot, Notification, ClientRecord } from '../../types';
 
-type AdminView = 'overview' | 'editions' | 'slots' | 'materials' | 'pricing' | 'export';
+type AdminView = 'overview' | 'editions' | 'slots' | 'materials' | 'pricing' | 'export' | 'clients';
+
+function AdminLogin() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err: any) {
+      setError('Credenciales inválidas. Por favor intenta de nuevo.');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <Card className="w-full max-w-md p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-black text-gray-900 mb-2">Panel de Control</h1>
+          <p className="text-gray-500">Ingresá tus credenciales para continuar</p>
+        </div>
+        
+        <form onSubmit={handleLogin} className="space-y-6">
+          {error && (
+            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-[var(--radius-md)] border border-red-100">
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-[var(--radius-md)] focus:ring-2 focus:ring-teal focus:border-transparent outline-none transition-shadow"
+              placeholder="admin@latroncal.com"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Contraseña
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-[var(--radius-md)] focus:ring-2 focus:ring-teal focus:border-transparent outline-none transition-shadow"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          
+          <Button type="submit" loading={loading} className="w-full" size="lg">
+            Ingresar
+          </Button>
+        </form>
+      </Card>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Verificando sesión...</div>;
+  }
+
+  if (!user) {
+    return <AdminLogin />;
+  }
+
+  return <AdminDashboardContent />;
+}
+
+function AdminDashboardContent() {
   const { edition, loading: loadingEd } = useActiveEdition();
   const { slots, loading: loadingSlots } = useSlots(edition?.id);
   const { pricing, loading: loadingPricing } = usePricing();
   const { notifications, loading: loadingNotifs } = useNotifications();
   const { settings, loading: loadingSettings } = useSettings();
+  const { clients, loading: loadingClients } = useClients();
 
   const [currentView, setCurrentView] = useState<AdminView>('overview');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -42,7 +128,7 @@ export default function AdminDashboard() {
 
   const displayShowSoldAds = optimisticShowSoldAds !== null ? optimisticShowSoldAds : settings?.showSoldAds;
 
-  const loading = loadingEd || loadingSlots || loadingPricing || loadingNotifs || loadingSettings;
+  const loading = loadingEd || loadingSlots || loadingPricing || loadingNotifs || loadingSettings || loadingClients;
 
   if (loading || !edition || !pricing || !settings || !localPricing) {
     return <div className="min-h-screen flex items-center justify-center">Cargando dashboard...</div>;
@@ -56,6 +142,7 @@ export default function AdminDashboard() {
     { key: 'editions', label: 'Ediciones', icon: <BookOpen size={18} /> },
     { key: 'slots', label: 'Espacios', icon: <Grid3x3 size={18} /> },
     { key: 'materials', label: 'Materiales', icon: <Image size={18} /> },
+    { key: 'clients', label: 'Clientes', icon: <Users size={18} /> },
     { key: 'export', label: 'Exportar', icon: <Download size={18} /> },
   ];
 
@@ -106,7 +193,10 @@ export default function AdminDashboard() {
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
             <Settings size={18} /> Configuración
           </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-sm text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors">
+          <button 
+            onClick={() => signOut(auth)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-sm text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors"
+          >
             <LogOut size={18} /> Cerrar sesión
           </button>
         </div>
@@ -228,6 +318,7 @@ export default function AdminDashboard() {
           {currentView === 'editions' && <EditionsView edition={edition} />}
           {currentView === 'slots' && <SlotsView slots={slots} />}
           {currentView === 'materials' && <MaterialsView slots={soldSlots} />}
+          {currentView === 'clients' && <ClientsView clients={clients} />}
           {currentView === 'export' && <ExportView edition={edition} />}
         </div>
       </div>
@@ -452,11 +543,58 @@ function EditionsView({ edition }: { edition: any }) {
 // Slots View
 // =========================================
 function SlotsView({ slots }: { slots: Slot[] }) {
+  const handleFreeSlot = async (slotId: string) => {
+    if (!window.confirm('¿Estás seguro de liberar este espacio? Se borrarán los datos del cliente y el archivo.')) return;
+    try {
+      await updateDoc(doc(db, 'slots', slotId), {
+        status: 'available',
+        clientInfo: deleteField(),
+        paymentId: deleteField(),
+        fileUrl: deleteField(),
+        fileName: deleteField(),
+        renamedFileName: deleteField(),
+        destinationLink: deleteField(),
+        linkType: deleteField(),
+        updatedAt: new Date()
+      });
+    } catch (e) {
+      console.error(e);
+      alert('Error al liberar espacio');
+    }
+  };
+
+  const handleFreeAll = async () => {
+    const soldSlots = slots.filter(s => s.status !== 'available');
+    if (soldSlots.length === 0) return alert('No hay espacios ocupados para liberar.');
+    if (!window.confirm(`¿Estás seguro de liberar TODOS los espacios ocupados (${soldSlots.length})?`)) return;
+    
+    try {
+      for (const slot of soldSlots) {
+        await updateDoc(doc(db, 'slots', slot.id), {
+          status: 'available',
+          clientInfo: deleteField(),
+          paymentId: deleteField(),
+          fileUrl: deleteField(),
+          fileName: deleteField(),
+          renamedFileName: deleteField(),
+          destinationLink: deleteField(),
+          linkType: deleteField(),
+          updatedAt: new Date()
+        });
+      }
+      alert('Todos los espacios han sido liberados.');
+    } catch(e) {
+      console.error(e);
+      alert('Ocurrió un error al liberar los espacios.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-gray-900">Gestión de Espacios</h2>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleFreeAll} className="text-red-600 border-red-200 hover:bg-red-50" icon={<Trash2 size={14} />}>Liberar Todos</Button>
           <Button variant="outline" size="sm" icon={<Plus size={14} />}>Agregar Página</Button>
           <Button size="sm" icon={<Plus size={14} />}>Nuevo Espacio</Button>
         </div>
@@ -500,6 +638,9 @@ function SlotsView({ slots }: { slots: Slot[] }) {
 
               <div className="mt-3 flex gap-2">
                 <Button variant="ghost" size="sm" className="flex-1 text-xs">Ver detalle</Button>
+                {slot.status !== 'available' && (
+                  <Button variant="ghost" size="sm" onClick={() => handleFreeSlot(slot.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50">Liberar</Button>
+                )}
               </div>
             </Card>
           );
@@ -513,6 +654,26 @@ function SlotsView({ slots }: { slots: Slot[] }) {
 // Materials View
 // =========================================
 function MaterialsView({ slots }: { slots: Slot[] }) {
+  const handleFreeSlot = async (slotId: string) => {
+    if (!window.confirm('¿Estás seguro de liberar este espacio? Se borrarán los datos del cliente y el archivo.')) return;
+    try {
+      await updateDoc(doc(db, 'slots', slotId), {
+        status: 'available',
+        clientInfo: deleteField(),
+        paymentId: deleteField(),
+        fileUrl: deleteField(),
+        fileName: deleteField(),
+        renamedFileName: deleteField(),
+        destinationLink: deleteField(),
+        linkType: deleteField(),
+        updatedAt: new Date()
+      });
+    } catch (e) {
+      console.error(e);
+      alert('Error al liberar espacio');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-bold text-gray-900">Materiales Recibidos</h2>
@@ -538,6 +699,9 @@ function MaterialsView({ slots }: { slots: Slot[] }) {
               {slot.destinationLink && (
                 <p className="text-xs text-teal mt-1 truncate">{slot.destinationLink}</p>
               )}
+              <div className="mt-3">
+                 <Button variant="outline" size="sm" onClick={() => handleFreeSlot(slot.id)} className="w-full text-red-500 text-xs border-red-200 hover:bg-red-50">Liberar espacio</Button>
+              </div>
             </Card>
           ))}
         </div>
@@ -593,6 +757,117 @@ function ExportView({ edition }: { edition: any }) {
           <Button onClick={handleExport} loading={exporting} icon={<Download size={16} />} size="lg">
             Descargar ZIP
           </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// =========================================
+// Clients View
+// =========================================
+function ClientsView({ clients }: { clients: ClientRecord[] }) {
+  const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState<'all' | '30days' | '6months' | 'year'>('all');
+
+  const filteredClients = clients.filter(c => {
+    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase());
+    let matchDate = true;
+    if (dateFilter !== 'all' && c.lastPurchaseDate) {
+       const now = new Date();
+       const diffTime = Math.abs(now.getTime() - c.lastPurchaseDate.getTime());
+       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+       if (dateFilter === '30days') matchDate = diffDays <= 30;
+       if (dateFilter === '6months') matchDate = diffDays <= 180;
+       if (dateFilter === 'year') matchDate = diffDays <= 365;
+    }
+    return matchSearch && matchDate;
+  });
+
+  const exportCSV = () => {
+    const csvHeaders = ['Nombre', 'Email', 'Teléfono', 'Primera Compra', 'Última Compra', 'Total Compras'];
+    const rows = filteredClients.map(c => [
+      `"${c.name}"`,
+      `"${c.email}"`,
+      `"${c.phone}"`,
+      `"${c.firstPurchaseDate ? c.firstPurchaseDate.toLocaleDateString('es-AR') : ''}"`,
+      `"${c.lastPurchaseDate ? c.lastPurchaseDate.toLocaleDateString('es-AR') : ''}"`,
+      c.totalPurchases || 0
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [csvHeaders.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'clientes_latroncal.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-gray-900">Base de Datos de Clientes</h2>
+        <Button onClick={exportCSV} icon={<Download size={16} />} size="sm">Exportar CSV</Button>
+      </div>
+
+      <Card>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <input
+            type="text"
+            placeholder="Buscar por nombre o email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-[var(--radius-md)] text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+          />
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value as any)}
+            className="px-4 py-2 border border-gray-300 rounded-[var(--radius-md)] text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+          >
+            <option value="all">Todas las fechas (Última compra)</option>
+            <option value="30days">Últimos 30 días</option>
+            <option value="6months">Últimos 6 meses</option>
+            <option value="year">Último año</option>
+          </select>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 text-gray-500 font-medium">Cliente</th>
+                <th className="text-left py-3 text-gray-500 font-medium">Contacto</th>
+                <th className="text-left py-3 text-gray-500 font-medium">Última Compra</th>
+                <th className="text-center py-3 text-gray-500 font-medium">Total Compras</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredClients.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-gray-500">
+                    No se encontraron clientes que coincidan con los filtros.
+                  </td>
+                </tr>
+              ) : (
+                filteredClients.map(client => (
+                  <tr key={client.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="py-3 font-medium text-gray-900">{client.name}</td>
+                    <td className="py-3">
+                      <div className="text-gray-800">{client.email}</div>
+                      <div className="text-xs text-gray-500">{client.phone}</div>
+                    </td>
+                    <td className="py-3 text-gray-600">
+                      {client.lastPurchaseDate ? client.lastPurchaseDate.toLocaleDateString('es-AR') : '-'}
+                    </td>
+                    <td className="py-3 text-center">
+                      <Badge variant="teal" size="sm">{client.totalPurchases || 0}</Badge>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </Card>
     </div>

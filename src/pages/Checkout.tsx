@@ -8,7 +8,7 @@ import { Badge } from '../components/ui/Badge';
 import { SLOT_DIMENSIONS } from '../types';
 import type { ClientInfo, CheckoutStep } from '../types';
 import { useActiveEdition, useSlots, usePricing } from '../hooks/useFirebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tokenizeCard, processPayment } from '../lib/payway';
 import type { CardData } from '../lib/payway';
@@ -71,6 +71,35 @@ export default function Checkout() {
           clientInfo,
           paymentId: result.transactionId || 'payway_mock'
         });
+
+        // Registrar o actualizar cliente en la colección 'clients'
+        try {
+          const clientEmail = clientInfo.email.toLowerCase();
+          const clientRef = doc(db, 'clients', clientEmail);
+          const clientSnap = await getDoc(clientRef);
+          
+          if (clientSnap.exists()) {
+             const existing = clientSnap.data();
+             await updateDoc(clientRef, {
+               name: clientInfo.name,
+               phone: clientInfo.phone,
+               lastPurchaseDate: new Date(),
+               totalPurchases: (existing.totalPurchases || 0) + 1
+             });
+          } else {
+             await setDoc(clientRef, {
+               name: clientInfo.name,
+               email: clientEmail,
+               phone: clientInfo.phone,
+               firstPurchaseDate: new Date(),
+               lastPurchaseDate: new Date(),
+               totalPurchases: 1
+             });
+          }
+        } catch (e) {
+          console.error('Error guardando cliente', e);
+        }
+
         setTimeout(() => setStep('upload'), 1500);
       } else {
         setPaymentResult('rejected');

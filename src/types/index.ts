@@ -43,6 +43,16 @@ export interface ClientInfo {
   phone: string;
 }
 
+export interface ClientRecord {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  firstPurchaseDate: Date;
+  lastPurchaseDate: Date;
+  totalPurchases: number;
+}
+
 export interface Slot {
   id: string;
   editionId: string;

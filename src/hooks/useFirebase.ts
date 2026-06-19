@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { doc, collection, onSnapshot, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import type { Edition, PricingConfig, AppSettings, Slot, Notification } from '../types';
+import { doc, collection, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { db, auth } from '../lib/firebase';
+import type { Edition, PricingConfig, AppSettings, Slot, Notification, ClientRecord } from '../types';
 
 // Utility to convert Firestore timestamps to JS Dates
 const convertTimestamps = (data: any): any => {
@@ -125,4 +126,42 @@ export function useNotifications() {
   }, []);
 
   return { notifications, loading };
+}
+
+export function useClients() {
+  const [clients, setClients] = useState<ClientRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'clients'), orderBy('lastPurchaseDate', 'desc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const clientsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...convertTimestamps(doc.data())
+      })) as ClientRecord[];
+      setClients(clientsData);
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  return { clients, loading };
+}
+
+// =========================================
+// Authentication Hook
+// =========================================
+export function useAuth() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  return { user, loading };
 }

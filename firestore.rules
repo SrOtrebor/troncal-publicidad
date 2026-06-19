@@ -2,33 +2,37 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ⚠️ REGLAS DE DESARROLLO (Modo Prueba)
-    // Permite lectura y escritura a cualquier usuario por 30 días.
-    // Una vez implementado Firebase Auth para el panel de Admin,
-    // cambiaremos estas reglas para proteger los datos.
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 7, 15);
+    // Función para verificar si es el Admin
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == 'HbJXARWENmYQA3CRFZcGTltk1C73';
     }
-    
-    /* 
-    REGLAS PARA PRODUCCIÓN (Las usaremos más adelante):
+
     match /config/{document=**} {
       allow read: if true;
-      allow write: if request.auth != null; // Solo admin
+      allow write: if isAdmin();
     }
+    
     match /editions/{editionId} {
       allow read: if true;
-      allow write: if request.auth != null; // Solo admin
+      allow write: if isAdmin();
     }
+    
     match /slots/{slotId} {
       allow read: if true;
-      // Checkout necesita actualizar el slot para reservarlo/comprarlo
+      // Cualquier usuario puede reservar/comprar (Checkout actualiza el slot)
       allow write: if true; 
     }
-    match /notifications/{notifId} {
-      allow read: if request.auth != null; // Solo admin
-      allow write: if true; // El sistema de pago crea notificaciones
+    
+    match /clients/{clientId} {
+      allow read: if isAdmin();
+      // Cualquier usuario que compra es guardado automáticamente
+      allow write: if true;
     }
-    */
+    
+    match /notifications/{notifId} {
+      allow read: if isAdmin();
+      // El checkout genera notificaciones de venta/subida de material
+      allow write: if true;
+    }
   }
 }
