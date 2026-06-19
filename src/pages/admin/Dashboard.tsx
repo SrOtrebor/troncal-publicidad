@@ -572,7 +572,6 @@ function SlotsView({ slots }: { slots: Slot[] }) {
         updatedAt: new Date()
       });
     } catch (e) {
-      console.error(e);
       alert('Error al liberar espacio');
     }
   };
@@ -682,7 +681,6 @@ function MaterialsView({ slots }: { slots: Slot[] }) {
         updatedAt: new Date()
       });
     } catch (e) {
-      console.error(e);
       alert('Error al liberar espacio');
     }
   };

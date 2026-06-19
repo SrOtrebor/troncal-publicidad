@@ -88,7 +88,6 @@ export async function processPayment(
       amount,
     };
   } catch (error: any) {
-    console.error("Error al procesar pago en Cloud Function:", error);
     return {
       status: 'rejected',
       transactionId: '',
