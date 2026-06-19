@@ -62,43 +62,12 @@ export default function Checkout() {
     setPaymentError('');
     try {
       const token = await tokenizeCard(cardData);
-      const result = await processPayment(token.token, price, clientInfo.email, slot.id);
+      // Limpiar tarjeta inmediatamente
+      setCardData({ cardNumber: '', cardExpMonth: '', cardExpYear: '', cardCvv: '', cardHolderName: '' });
+      const result = await processPayment(token.token, price, clientInfo, slot.id);
       if (result.status === 'approved') {
         setPaymentResult('approved');
-        // Actualizar en Firebase
-        await updateDoc(doc(db, 'slots', slot.id), {
-          status: 'sold',
-          clientInfo,
-          paymentId: result.transactionId || 'payway_mock'
-        });
 
-        // Registrar o actualizar cliente en la colección 'clients'
-        try {
-          const clientEmail = clientInfo.email.toLowerCase();
-          const clientRef = doc(db, 'clients', clientEmail);
-          const clientSnap = await getDoc(clientRef);
-          
-          if (clientSnap.exists()) {
-             const existing = clientSnap.data();
-             await updateDoc(clientRef, {
-               name: clientInfo.name,
-               phone: clientInfo.phone,
-               lastPurchaseDate: new Date(),
-               totalPurchases: (existing.totalPurchases || 0) + 1
-             });
-          } else {
-             await setDoc(clientRef, {
-               name: clientInfo.name,
-               email: clientEmail,
-               phone: clientInfo.phone,
-               firstPurchaseDate: new Date(),
-               lastPurchaseDate: new Date(),
-               totalPurchases: 1
-             });
-          }
-        } catch (e) {
-          console.error('Error guardando cliente', e);
-        }
 
         setTimeout(() => setStep('upload'), 1500);
       } else {
@@ -112,7 +81,9 @@ export default function Checkout() {
     }
   };
 
-  const canProceedToPayment = clientInfo.name.length > 2 && clientInfo.email.includes('@') && clientInfo.phone.length > 6;
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidPhone = (phone: string) => /^[\d\s\-\+]{8,20}$/.test(phone);
+  const canProceedToPayment = clientInfo.name.trim().length > 2 && isValidEmail(clientInfo.email) && isValidPhone(clientInfo.phone);
 
   return (
     <div className="py-10">
@@ -212,6 +183,7 @@ export default function Checkout() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">Número de tarjeta</label>
                           <input
                             type="text" value={cardData.cardNumber}
+                            inputMode="numeric" autoComplete="cc-number"
                             onChange={(e) => setCardData({ ...cardData, cardNumber: e.target.value.replace(/\D/g, '').slice(0, 16) })}
                             className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal font-mono tracking-wider"
                             placeholder="4111 1111 1111 1111"
@@ -222,6 +194,7 @@ export default function Checkout() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Mes</label>
                             <input
                               type="text" value={cardData.cardExpMonth}
+                              inputMode="numeric" autoComplete="cc-exp-month"
                               onChange={(e) => setCardData({ ...cardData, cardExpMonth: e.target.value.slice(0, 2) })}
                               className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal text-center"
                               placeholder="MM"
@@ -231,6 +204,7 @@ export default function Checkout() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
                             <input
                               type="text" value={cardData.cardExpYear}
+                              inputMode="numeric" autoComplete="cc-exp-year"
                               onChange={(e) => setCardData({ ...cardData, cardExpYear: e.target.value.slice(0, 2) })}
                               className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal text-center"
                               placeholder="AA"
@@ -240,6 +214,7 @@ export default function Checkout() {
                             <label className="block text-sm font-medium text-gray-700 mb-1">CVV</label>
                             <input
                               type="text" value={cardData.cardCvv}
+                              inputMode="numeric" autoComplete="cc-csc"
                               onChange={(e) => setCardData({ ...cardData, cardCvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
                               className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal text-center"
                               placeholder="123"
@@ -250,6 +225,7 @@ export default function Checkout() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">Titular</label>
                           <input
                             type="text" value={cardData.cardHolderName}
+                            autoComplete="cc-name"
                             onChange={(e) => setCardData({ ...cardData, cardHolderName: e.target.value })}
                             className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal"
                             placeholder="Como figura en la tarjeta"

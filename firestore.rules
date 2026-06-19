@@ -19,20 +19,22 @@ service cloud.firestore {
     
     match /slots/{slotId} {
       allow read: if true;
-      // Cualquier usuario puede reservar/comprar (Checkout actualiza el slot)
-      allow write: if true; 
+      allow write: if isAdmin(); // Solo admin (o backend Cloud Functions)
     }
     
     match /clients/{clientId} {
       allow read: if isAdmin();
-      // Cualquier usuario que compra es guardado automáticamente
-      allow write: if true;
+      allow write: if isAdmin(); // Cloud Functions creará los clientes
     }
     
     match /notifications/{notifId} {
       allow read: if isAdmin();
-      // El checkout genera notificaciones de venta/subida de material
-      allow write: if true;
+      allow write: if isAdmin(); // Cloud Functions creará las notificaciones
+    }
+
+    // Regla Catch-all para bloquear acceso a colecciones no definidas
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

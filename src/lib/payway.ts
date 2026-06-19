@@ -64,7 +64,7 @@ export async function tokenizeCard(cardData: CardData): Promise<TokenResponse> {
 export async function processPayment(
   token: string,
   amount: number,
-  email: string,
+  clientInfo: { name: string; email: string; phone: string },
   slotId: string
 ): Promise<PaymentResult> {
   
@@ -75,7 +75,7 @@ export async function processPayment(
     const result = await processPaywayPayment({
       token,
       amount,
-      email,
+      clientInfo,
       slotId
     });
 

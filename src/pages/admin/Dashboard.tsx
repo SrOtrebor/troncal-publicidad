@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { seedDatabase } from '../../lib/seed';
+
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, BookOpen, Grid3x3, Image, Download, DollarSign,
@@ -23,15 +23,35 @@ function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState(0);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockoutTime > 0) return;
     setLoading(true);
     setError('');
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      setAttempts(0);
     } catch (err: any) {
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
       setError('Credenciales inválidas. Por favor intenta de nuevo.');
+      
+      if (newAttempts >= 3) {
+        setLockoutTime(30);
+        setError('Demasiados intentos. Esperá 30 segundos.');
+        const interval = setInterval(() => {
+          setLockoutTime((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
       setLoading(false);
     }
   };
@@ -79,8 +99,8 @@ function AdminLogin() {
             />
           </div>
           
-          <Button type="submit" loading={loading} className="w-full" size="lg">
-            Ingresar
+          <Button type="submit" loading={loading} disabled={lockoutTime > 0} className="w-full" size="lg">
+            {lockoutTime > 0 ? `Esperá ${lockoutTime}s` : 'Ingresar'}
           </Button>
         </form>
       </Card>
@@ -278,13 +298,7 @@ function AdminDashboardContent() {
               )}
             </div>
             
-            <Button size="sm" variant="outline" onClick={async () => {
-              const res = await seedDatabase();
-              if(res) alert('Base de datos poblada exitosamente');
-              else alert('Error poblando BD (revisa permisos en Firebase Console)');
-            }}>
-              Seed Firebase DB
-            </Button>
+
 
             <div className="w-8 h-8 rounded-full bg-teal text-white flex items-center justify-center text-xs font-bold">
               A
@@ -583,8 +597,7 @@ function SlotsView({ slots }: { slots: Slot[] }) {
         });
       }
       alert('Todos los espacios han sido liberados.');
-    } catch(e) {
-      console.error(e);
+    } catch(e: any) {
       alert('Ocurrió un error al liberar los espacios.');
     }
   };

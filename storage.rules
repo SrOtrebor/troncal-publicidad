@@ -2,9 +2,22 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // ⚠️ REGLAS DE DESARROLLO (Modo Prueba)
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == 'HbJXARWENmYQA3CRFZcGTltk1C73';
+    }
+
+    // Archivos de anunciantes
+    match /ads/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() || (
+        request.resource.size < 10 * 1024 * 1024 && // Max 10MB
+        request.resource.contentType.matches('image/.*|application/pdf')
+      );
+    }
+
+    // Bloquear todo lo demás por defecto, excepto para admin
     match /{allPaths=**} {
-      allow read, write: if request.time < timestamp.date(2026, 7, 15);
+      allow read, write: if isAdmin();
     }
   }
 }
