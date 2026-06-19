@@ -12,6 +12,10 @@ import { doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tokenizeCard, processPayment } from '../lib/payway';
 import type { CardData } from '../lib/payway';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../lib/firebase';
 
 export default function Checkout() {
   const { slotId } = useParams<{ slotId: string }>();
@@ -325,10 +329,30 @@ function UploadStep({ slot, clientName }: { slot: any; clientName: string }) {
   const handleUpload = async () => {
     if (!file || !link) return;
     setUploading(true);
-    // Simulate upload
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setUploading(false);
-    setUploaded(true);
+    try {
+      // 1. Upload file to Firebase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `ads/${slot.id}_${Date.now()}.${fileExt}`;
+      const storageRef = ref(storage, fileName);
+      await uploadBytes(storageRef, file);
+      const fileUrl = await getDownloadURL(storageRef);
+
+      // 2. Save material info via Cloud Function
+      const saveSlotMaterial = httpsCallable(functions, 'saveSlotMaterial');
+      await saveSlotMaterial({
+        slotId: slot.id,
+        fileUrl,
+        destinationLink: link,
+        linkType
+      });
+
+      setUploaded(true);
+    } catch (error) {
+      console.error("Error subiendo el archivo:", error);
+      alert("Hubo un error al subir tu material. Por favor intenta de nuevo.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (uploaded) {
