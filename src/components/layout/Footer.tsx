@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ExternalLink, Mail, Phone, MapPin, Globe } from 'lucide-react';
+import { Mail, Phone, MapPin, Globe, Instagram, MessageCircle } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -9,13 +9,12 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <img src="/favicon.svg" alt="La Troncal" className="w-10 h-10" />
-              <div>
-                <p className="text-white font-bold text-lg font-[family-name:var(--font-display)]">La Troncal</p>
-                <p className="text-xs text-gray-500 uppercase tracking-widest">Publicidad</p>
+              <div className="flex items-center gap-3 mb-4">
+                <img src="/favicon.svg" alt="La Troncal" className="w-10 h-10" />
+                <div>
+                  <p className="text-white font-bold text-lg font-[family-name:var(--font-display)]">La Troncal</p>
+                </div>
               </div>
-            </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               Guía Ruta Comercial 27<br />
               Publicidad gráfica y digital.<br />
@@ -23,9 +22,9 @@ export function Footer() {
             </p>
             <div className="flex gap-3 mt-5">
               {[
-                { icon: ExternalLink, href: '#' },
-                { icon: ExternalLink, href: '#' },
-                { icon: ExternalLink, href: '#' },
+                { icon: MessageCircle, href: 'https://wa.me/5491140300942' },
+                { icon: Instagram, href: 'https://instagram.com/latroncaldenordelta' },
+                { icon: Mail, href: 'mailto:latroncaldenordelta@gmail.com' },
               ].map(({ icon: Icon, href }, i) => (
                 <a
                   key={i}
@@ -106,10 +105,10 @@ export function Footer() {
       <div className="border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} La Troncal. Todos los derechos reservados.
+            © 2026 La Troncal. Todos los derechos reservados.
           </p>
           <p className="text-xs text-gray-600">
-            Plataforma de gestión publicitaria
+            Desarrollado por <a href="https://estudioprecinto.com" target="_blank" rel="noopener noreferrer" className="hover:text-teal transition-colors">estudioprecinto.com</a>
           </p>
         </div>
       </div>
