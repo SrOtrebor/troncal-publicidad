@@ -325,7 +325,7 @@ export default function Landing() {
               Espacios y Precios
             </h2>
             <p className="mt-4 text-gray-500 max-w-xl mx-auto">
-              Elegí el tamaño ideal para tu marca. Los precios son sin IVA (+ IVA 2.5%). ¡Aprovechá nuestra promoción por 3 meses!
+              Elegí el tamaño ideal para tu marca. Los precios son sin IVA (+ IVA 2.5%). ¡Aprovechá nuestra promoción por 3 ediciones!
             </p>
           </motion.div>
 

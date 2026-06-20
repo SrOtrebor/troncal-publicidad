@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, BookOpen, Grid3x3, Image, Download, DollarSign,
   Bell, Settings, LogOut, ChevronDown, Plus, Eye, EyeOff,
-  Printer, Calendar, TrendingUp, Users, Package, Trash2
+  Printer, Calendar, TrendingUp, Users, Package, Trash2, Menu, X
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -131,6 +131,7 @@ function AdminDashboardContent() {
   const { clients, loading: loadingClients } = useClients();
 
   const [currentView, setCurrentView] = useState<AdminView>('overview');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [localPricing, setLocalPricing] = useState<PricingConfig | null>(null);
   const [pricingSaved, setPricingSaved] = useState(false);
@@ -177,10 +178,18 @@ function AdminDashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Mobile overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+          onClick={() => setIsSidebarOpen(false)} 
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 text-white flex flex-col fixed h-screen">
+      <aside className={`w-64 bg-gray-900 text-white flex flex-col fixed h-screen z-50 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo */}
-        <div className="p-5 border-b border-gray-800">
+        <div className="p-5 border-b border-gray-800 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <img src="/favicon.svg" alt="La Troncal" className="w-9 h-9" />
             <div>
@@ -188,6 +197,9 @@ function AdminDashboardContent() {
               <p className="text-[10px] text-gray-400 uppercase tracking-wider">Admin Panel</p>
             </div>
           </div>
+          <button className="lg:hidden text-gray-400 p-1" onClick={() => setIsSidebarOpen(false)}>
+            <X size={20} />
+          </button>
         </div>
 
         {/* Nav */}
@@ -195,7 +207,7 @@ function AdminDashboardContent() {
           {sidebarLinks.map((link) => (
             <button
               key={link.key}
-              onClick={() => setCurrentView(link.key)}
+              onClick={() => { setCurrentView(link.key); setIsSidebarOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] text-sm font-medium transition-all duration-200
                 ${currentView === link.key
                   ? 'bg-teal text-white'
@@ -220,14 +232,20 @@ function AdminDashboardContent() {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 ml-64">
+      {/* Main content */}
+      <div className="flex-1 lg:ml-64 w-full flex flex-col min-h-screen overflow-x-hidden">
         {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">{sidebarLinks.find((l) => l.key === currentView)?.label}</h1>
-            <p className="text-xs text-gray-400">{edition.title}</p>
-          </div>
+        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
+            <button className="lg:hidden text-gray-500 p-1 -ml-2" onClick={() => setIsSidebarOpen(true)}>
+              <Menu size={24} />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">{sidebarLinks.find((l) => l.key === currentView)?.label}</h1>
+              <p className="text-xs text-gray-400">{edition.title}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Show sold ads toggle */}
             <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
               <span className="text-xs text-gray-500">Mostrar anuncios</span>
