@@ -69,8 +69,13 @@ export default function Landing() {
                   </Button>
                 </Link>
                 <a href="#precios">
-                  <Button variant="outline" size="lg" className="!border-gray-600 !text-gray-300 hover:!bg-white/10">
-                    Ver precios
+                  <Button variant="secondary" size="lg">
+                    Ver Precios
+                  </Button>
+                </a>
+                <a href="https://linktr.ee/LatroncaldeNordelta" target="_blank" rel="noopener noreferrer" className="lg:hidden w-full sm:w-auto">
+                  <Button variant="secondary" size="lg" className="w-full" icon={<ExternalLink size={20} />}>
+                    Ver ediciones digitales
                   </Button>
                 </a>
               </div>
@@ -114,7 +119,7 @@ export default function Landing() {
                       <h3 className="text-xl font-bold text-gray-800 font-[family-name:var(--font-display)] text-center">
                         La Troncal
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">Agosto 2026</p>
+                      <p className="text-xs text-gray-500 mt-1 text-center px-4">Guía Ruta Comercial 27 edición Agosto 2026</p>
                       <div className="mt-6 w-full space-y-2">
                         <div className="h-2 bg-gray-200 rounded-full w-full" />
                         <div className="h-2 bg-gray-200 rounded-full w-4/5" />
