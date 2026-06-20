@@ -54,10 +54,10 @@ export default function Landing() {
                 Agosto 2026 — Espacios disponibles
               </Badge>
               <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1]">
-                Publicitá en <span className="text-gradient-teal">La Troncal</span>
+                Publicitá en <br /><span className="text-gradient-teal whitespace-nowrap">La Troncal</span>
               </h1>
               <p className="mt-5 text-lg text-gray-300 max-w-xl leading-relaxed">
-                Guía Ruta comercial 27 gráfica y digital.<br />
+                Guía Ruta Comercial 27 gráfica y digital.<br />
                 Hiperlocal, interactiva y multimedial.<br />
                 Alcance directo a tu público objetivo.
               </p>
@@ -171,7 +171,7 @@ export default function Landing() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { title: 'Aviso Impreso', desc: 'Full color con distribución física estratégica.', icon: <BookOpen size={24} /> },
+              { title: 'Aviso Impreso', desc: '6.000 Ejemplares. Distribución gratuita puerta a puerta, en eventos exclusivos y puntos estratégicos con revisteros propios.', icon: <BookOpen size={24} /> },
               { title: 'Guía Digital', desc: 'Tu marca siempre disponible online de forma interactiva.', icon: <Globe size={24} /> },
               { title: 'Reposteo en Redes', desc: 'Más alcance para tu marca a través de nuestros canales.', icon: <Smartphone size={24} /> },
               { title: 'Publinota', desc: 'Artículo en La Troncal (medio de noticias online).', icon: <Eye size={24} /> },
@@ -206,8 +206,8 @@ export default function Landing() {
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
               ¿Por qué publicitar en La Troncal?
             </h2>
-            <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-              Más que una Guía: una plataforma multimedia que conecta tu marca con la comunidad de Nordelta y alrededores.
+            <p className="mt-4 text-xl text-gray-500 max-w-3xl mx-auto">
+              Más que una Guía: una plataforma multimedial que conecta tu marca con la comunidad de Nordelta y alrededores.
             </p>
           </motion.div>
 
@@ -281,9 +281,9 @@ export default function Landing() {
               },
               {
                 step: '02',
-                icon: <Smartphone size={24} />,
                 title: 'Pagá online por tarjeta o transferencia',
-                desc: 'Ya estas muy cerca para que tu marca se luzca en la próxima edición de la Guia RC27 (con opción a subir tu comprobante de transferencia o pagar con tarjeta).',
+                desc: 'Ya estás muy cerca de que tu marca se luzca en la próxima edición de la Guía RC27.',
+                icon: <CreditCard size={24} />,
               },
               {
                 step: '03',

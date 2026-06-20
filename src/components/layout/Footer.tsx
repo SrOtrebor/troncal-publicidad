@@ -17,7 +17,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Guía Ruta comercial 27<br />
+              Guía Ruta Comercial 27<br />
               Publicidad gráfica y digital.<br />
               Alcance directo a tu público objetivo.
             </p>
