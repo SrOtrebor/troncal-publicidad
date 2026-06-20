@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Eye, Globe, Zap, BookOpen, Smartphone, TrendingUp, ExternalLink } from 'lucide-react';
+import { ArrowRight, Eye, Globe, Zap, BookOpen, Smartphone, TrendingUp, ExternalLink, CreditCard } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
