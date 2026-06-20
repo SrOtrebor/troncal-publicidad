@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
 
@@ -10,8 +10,8 @@ const PAYWAY_PRIVATE_KEY = process.env.PAYWAY_KEY || 'TEST_PRIVATE_KEY_PAYWAY';
 const PAYWAY_URL = 'https://sandbox.decidir.com/api/v2/payments';
 
 // Callable function to process Payway payment
-export const processPaywayPayment = functions.https.onCall(async (request) => {
-  const { token, amount, clientInfo, slotId } = request.data || {};
+export const processPaywayPaymentV3 = functions.https.onCall(async (data, context) => {
+  const { token, amount, clientInfo, slotId } = data || {};
 
   console.log("Mock Payway initialized", { PAYWAY_PRIVATE_KEY: !!PAYWAY_PRIVATE_KEY, PAYWAY_URL, axios: !!axios, clientInfo });
 
@@ -111,8 +111,95 @@ export const processPaywayPayment = functions.https.onCall(async (request) => {
   }
 });
 
-export const saveSlotMaterial = functions.https.onCall(async (request) => {
-  const { slotId, fileUrl, destinationLink, linkType } = request.data || {};
+export const processManualPaymentV1 = functions.https.onCall(async (data, context) => {
+  const { slotId, amount, clientInfo, method, receiptUrl } = data || {};
+
+  if (!amount || !clientInfo || !slotId || !method) {
+    throw new functions.https.HttpsError('invalid-argument', 'Faltan parámetros requeridos.');
+  }
+
+  try {
+    const slotRef = db.collection('slots').doc(slotId);
+    const slotSnap = await slotRef.get();
+    
+    if (!slotSnap.exists) {
+      throw new functions.https.HttpsError('not-found', 'Espacio no encontrado.');
+    }
+    
+    const slotData = slotSnap.data();
+    if (slotData?.status !== 'available') {
+      throw new functions.https.HttpsError('failed-precondition', 'El espacio seleccionado ya fue vendido o reservado.');
+    }
+
+    const editionId = slotData?.editionId;
+    const slotSize = slotData?.size;
+
+    const transactionId = `txn_manual_${Date.now()}_${slotId}`;
+    const batch = db.batch();
+
+    batch.update(slotRef, {
+      status: 'sold', // Lo marcamos como vendido, el admin luego lo verifica.
+      clientInfo,
+      paymentId: transactionId,
+      paymentMethod: method,
+      receiptUrl: receiptUrl || null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    const clientEmail = clientInfo.email.toLowerCase();
+    const clientRef = db.collection('clients').doc(clientEmail);
+    const clientSnap = await clientRef.get();
+
+    if (clientSnap.exists) {
+      batch.update(clientRef, {
+        name: clientInfo.nombreApellido || clientInfo.razonSocial,
+        phone: clientInfo.telefono,
+        lastPurchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+        totalPurchases: admin.firestore.FieldValue.increment(1)
+      });
+    } else {
+      batch.set(clientRef, {
+        name: clientInfo.nombreApellido || clientInfo.razonSocial,
+        email: clientEmail,
+        phone: clientInfo.telefono,
+        firstPurchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+        lastPurchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+        totalPurchases: 1
+      });
+    }
+
+    const notifRef = db.collection('notifications').doc();
+    batch.set(notifRef, {
+      id: notifRef.id,
+      type: 'sale',
+      editionId,
+      slotId,
+      clientName: clientInfo.nombreApellido || clientInfo.razonSocial,
+      clientEmail: clientEmail,
+      slotSize,
+      amount,
+      message: `Nueva reserva de espacio (${slotSize}) por ${method}`,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      emailSent: false
+    });
+
+    await batch.commit();
+
+    return {
+      status: 'pending',
+      transactionId,
+      message: 'Intento de pago manual registrado exitosamente.'
+    };
+
+  } catch (error: any) {
+    console.error('Error processing manual payment:', error);
+    throw new functions.https.HttpsError('internal', error.message || 'No se pudo procesar el pago manual.');
+  }
+});
+
+export const saveSlotMaterialV3 = functions.https.onCall(async (data, context) => {
+  const { slotId, fileUrl, destinationLink, linkType } = data || {};
 
   if (!slotId || !fileUrl || !destinationLink || !linkType) {
     throw new functions.https.HttpsError('invalid-argument', 'Faltan parámetros requeridos.');

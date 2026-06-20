@@ -3,16 +3,29 @@
 // ============================================================
 
 // --- Slot Sizes ---
-export type SlotSize = 'full' | 'half' | 'quarter' | 'eighth';
+export type SlotSize = 
+  | 'quarter' 
+  | 'half' 
+  | 'full' 
+  | 'retiro-tapa' 
+  | 'indice' 
+  | 'retiro-contratapa' 
+  | 'contratapa' 
+  | 'eighth';
+
 export type SlotPosition = 'top' | 'bottom' | 'left' | 'right' | 'full' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type SlotStatus = 'available' | 'reserved' | 'sold' | 'assigned';
-export type LinkType = 'web' | 'whatsapp';
+export type LinkType = 'web' | 'whatsapp' | 'publinota' | 'instagram' | 'otro';
 
 export const SLOT_DIMENSIONS: Record<SlotSize, { width: number; height: number; label: string }> = {
-  full:    { width: 12.6,  height: 18.4,  label: 'Página entera' },
-  half:    { width: 12.6,  height: 9,     label: 'Media página' },
-  quarter: { width: 6.15,  height: 9,     label: 'Cuarto de página' },
-  eighth:  { width: 6.15,  height: 4.37,  label: 'Octavo de página' },
+  quarter:             { width: 6.15,  height: 9,     label: '1/4 de página' },
+  half:                { width: 12.6,  height: 9,     label: '1/2 de página' },
+  full:                { width: 12.6,  height: 18.4,  label: '1 página entera' },
+  'retiro-tapa':       { width: 12.6,  height: 18.4,  label: 'RETIRO DE TAPA' },
+  indice:              { width: 12.6,  height: 18.4,  label: 'ÍNDICE' },
+  'retiro-contratapa': { width: 12.6,  height: 18.4,  label: 'RETIRO DE CONTRATAPA' },
+  contratapa:          { width: 12.6,  height: 18.4,  label: 'CONTRATAPA' },
+  eighth:              { width: 6.15,  height: 4.37,  label: 'OCTAVO DE PÁGINA' },
 };
 
 // --- Edition ---
@@ -38,9 +51,22 @@ export interface Edition {
 
 // --- Slot ---
 export interface ClientInfo {
-  name: string;
+  razonSocial: string;
+  cuitCuil: string;
+  nombreApellido: string;
+  nombreComercial: string;
+  rubro: string;
   email: string;
-  phone: string;
+  telefono: string;
+  domicilioFiscal: string;
+  provincia: string;
+  localidad: string;
+  codigoPostal: string;
+  sitioWeb: string;
+  instagram: string;
+  comoNosConociste: string;
+  vendedor: string;
+  datosImpositivos: 'Monotributo' | 'IVA Inscripto' | 'IVA Exento' | 'Otro' | '';
 }
 
 export interface ClientRecord {
@@ -79,6 +105,7 @@ export interface Slot {
 
 // --- Payment ---
 export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'refunded';
+export type PaymentMethod = 'transferencia' | 'mercadopago' | 'efectivo' | 'payway';
 
 export interface Payment {
   id: string;
@@ -87,6 +114,8 @@ export interface Payment {
   amount: number;
   currency: 'ARS';
   status: PaymentStatus;
+  method: PaymentMethod;
+  receiptUrl?: string; // For transfer receipts
   paywayTransactionId?: string;
   paywayResponse?: Record<string, unknown>;
   clientEmail: string;
@@ -114,9 +143,13 @@ export interface Notification {
 
 // --- Config ---
 export interface PricingConfig {
-  full: number;
-  half: number;
   quarter: number;
+  half: number;
+  full: number;
+  'retiro-tapa': number;
+  indice: number;
+  'retiro-contratapa': number;
+  contratapa: number;
   eighth: number;
   updatedAt: Date;
 }

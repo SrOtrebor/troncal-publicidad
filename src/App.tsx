@@ -12,7 +12,7 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Landing />} />
           <Route path="/espacios" element={<SelectSlot />} />
-          <Route path="/checkout/:slotId" element={<Checkout />} />
+          <Route path="/checkout/:size" element={<Checkout />} />
         </Route>
         <Route path="/admin/*" element={<AdminDashboard />} />
       </Routes>

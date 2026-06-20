@@ -1,50 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, CreditCard, Upload, User, Shield } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CreditCard, Upload, User, Shield, Building2, MapPin, Receipt, ExternalLink } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { SLOT_DIMENSIONS } from '../types';
-import type { ClientInfo, CheckoutStep } from '../types';
+import type { ClientInfo, CheckoutStep, SlotSize, LinkType, PaymentMethod } from '../types';
 import { useActiveEdition, useSlots, usePricing } from '../hooks/useFirebase';
-import { doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { tokenizeCard, processPayment } from '../lib/payway';
-import type { CardData } from '../lib/payway';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { db, storage, functions } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../lib/firebase';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
 
 export default function Checkout() {
-  const { slotId } = useParams<{ slotId: string }>();
+  const { size } = useParams<{ size: string }>();
+  const slotSize = size as SlotSize;
   const { edition } = useActiveEdition();
   const { slots, loading: loadingSlots } = useSlots(edition?.id);
   const { pricing, loading: loadingPricing } = usePricing();
-  const slot = slots.find((s) => s.id === slotId);
+  
+  // Find first available slot of this size
+  const slot = slots.find((s) => s.size === slotSize && s.status === 'available');
+
   const [step, setStep] = useState<CheckoutStep>('summary');
-  const [clientInfo, setClientInfo] = useState<ClientInfo>({ name: '', email: '', phone: '' });
-  const [cardData, setCardData] = useState<CardData>({
-    cardNumber: '', cardExpMonth: '', cardExpYear: '', cardCvv: '', cardHolderName: '',
+  const [clientInfo, setClientInfo] = useState<ClientInfo>({ 
+    razonSocial: '', cuitCuil: '', nombreApellido: '', nombreComercial: '', 
+    rubro: '', email: '', telefono: '', domicilioFiscal: '', provincia: '', 
+    localidad: '', codigoPostal: '', sitioWeb: '', instagram: '', 
+    comoNosConociste: '', vendedor: '', datosImpositivos: '' 
   });
+  
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('transferencia');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentResult, setPaymentResult] = useState<'approved' | 'rejected' | null>(null);
+  const [paymentResult, setPaymentResult] = useState<'approved' | 'pending' | 'rejected' | null>(null);
   const [paymentError, setPaymentError] = useState('');
 
   if (loadingSlots || loadingPricing) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="text-teal font-medium">Cargando detalles de pago...</div>
+        <div className="text-teal font-medium">Cargando detalles...</div>
       </div>
     );
   }
 
-  if (!slot || !pricing) {
+  if (!pricing || !pricing[slotSize]) {
     return (
       <div className="py-20 text-center">
-        <h2 className="text-2xl font-bold text-gray-900">Espacio no encontrado</h2>
-        <p className="mt-2 text-gray-500">El espacio seleccionado no existe o ya no está disponible.</p>
+        <h2 className="text-2xl font-bold text-gray-900">Tamaño no encontrado</h2>
+        <p className="mt-2 text-gray-500">El tamaño seleccionado no es válido.</p>
         <Link to="/espacios" className="mt-6 inline-block">
           <Button variant="outline">Volver a espacios</Button>
         </Link>
@@ -52,8 +57,20 @@ export default function Checkout() {
     );
   }
 
-  const dim = SLOT_DIMENSIONS[slot.size];
-  const price = pricing[slot.size];
+  if (!slot) {
+    return (
+      <div className="py-20 text-center">
+        <h2 className="text-2xl font-bold text-gray-900">No hay disponibilidad</h2>
+        <p className="mt-2 text-gray-500">Lo sentimos, no hay espacios disponibles de este tamaño en la edición actual.</p>
+        <Link to="/espacios" className="mt-6 inline-block">
+          <Button variant="outline">Elegir otro tamaño</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const dim = SLOT_DIMENSIONS[slotSize];
+  const price = pricing[slotSize];
 
   const steps: { key: CheckoutStep; label: string; icon: React.ReactNode }[] = [
     { key: 'summary', label: 'Datos', icon: <User size={16} /> },
@@ -65,19 +82,35 @@ export default function Checkout() {
     setPaymentLoading(true);
     setPaymentError('');
     try {
-      const token = await tokenizeCard(cardData);
-      // Limpiar tarjeta inmediatamente
-      setCardData({ cardNumber: '', cardExpMonth: '', cardExpYear: '', cardCvv: '', cardHolderName: '' });
-      const result = await processPayment(token.token, price, clientInfo, slot.id);
-      if (result.status === 'approved') {
-        setPaymentResult('approved');
-
-
-        setTimeout(() => setStep('upload'), 1500);
-      } else {
-        setPaymentResult('rejected');
-        setPaymentError(result.message);
+      let receiptUrl = '';
+      
+      // If transferring, upload receipt
+      if (paymentMethod === 'transferencia' && receiptFile) {
+        const fileExt = receiptFile.name.split('.').pop();
+        const fileName = `receipts/${slot.id}_${Date.now()}.${fileExt}`;
+        const storageRef = ref(storage, fileName);
+        await uploadBytes(storageRef, receiptFile);
+        receiptUrl = await getDownloadURL(storageRef);
       }
+
+      // Record the payment intent / transfer in backend
+      const processPaymentFn = httpsCallable(functions, 'processManualPaymentV1');
+      await processPaymentFn({
+        slotId: slot.id,
+        amount: price,
+        clientInfo,
+        method: paymentMethod,
+        receiptUrl
+      });
+
+      setPaymentResult('pending');
+      
+      if (paymentMethod === 'mercadopago') {
+        // Here we could redirect to a MercadoPago checkout link generated by the backend
+        // For now, we simulate the intent creation and move to the next step
+      }
+
+      setTimeout(() => setStep('upload'), 1500);
     } catch (err: any) {
       setPaymentError(err.message || 'Error al procesar el pago');
     } finally {
@@ -87,17 +120,32 @@ export default function Checkout() {
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isValidPhone = (phone: string) => /^[\d\s\-\+]{8,20}$/.test(phone);
-  const canProceedToPayment = clientInfo.name.trim().length > 2 && isValidEmail(clientInfo.email) && isValidPhone(clientInfo.phone);
+  
+  // Basic validation for the long form
+  const canProceedToPayment = 
+    clientInfo.razonSocial.trim() !== '' &&
+    clientInfo.cuitCuil.trim() !== '' &&
+    clientInfo.nombreApellido.trim() !== '' &&
+    clientInfo.nombreComercial.trim() !== '' &&
+    clientInfo.rubro.trim() !== '' &&
+    isValidEmail(clientInfo.email) &&
+    isValidPhone(clientInfo.telefono) &&
+    clientInfo.domicilioFiscal.trim() !== '' &&
+    clientInfo.provincia.trim() !== '' &&
+    clientInfo.localidad.trim() !== '' &&
+    clientInfo.codigoPostal.trim() !== '' &&
+    clientInfo.comoNosConociste.trim() !== '' &&
+    clientInfo.datosImpositivos !== '';
+
+  const canProcessPayment = paymentMethod === 'mercadopago' || (paymentMethod === 'transferencia' && receiptFile !== null);
 
   return (
     <div className="py-10">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back link */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Link to="/espacios" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors">
           <ArrowLeft size={16} /> Volver a espacios
         </Link>
 
-        {/* Step indicator */}
         <div className="flex items-center justify-center gap-2 mb-10">
           {steps.map((s, i) => {
             const isActive = s.key === step;
@@ -118,42 +166,94 @@ export default function Checkout() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main content */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
               {step === 'summary' && (
                 <motion.div key="summary" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
                   <Card>
-                    <h2 className="text-xl font-bold text-gray-900 mb-5">Datos del anunciante</h2>
-                    <div className="space-y-4">
+                    <h2 className="text-xl font-bold text-gray-900 mb-5">Datos del Anunciante</h2>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre / Empresa</label>
-                        <input
-                          type="text" value={clientInfo.name}
-                          onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all"
-                          placeholder="Ej: Mi Empresa SRL"
-                        />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Razón Social *</label>
+                        <input type="text" value={clientInfo.razonSocial} onChange={(e) => setClientInfo({...clientInfo, razonSocial: e.target.value})} className="input-field" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input
-                          type="email" value={clientInfo.email}
-                          onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all"
-                          placeholder="email@empresa.com"
-                        />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">CUIT/CUIL *</label>
+                        <input type="text" value={clientInfo.cuitCuil} onChange={(e) => setClientInfo({...clientInfo, cuitCuil: e.target.value})} className="input-field" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                        <input
-                          type="tel" value={clientInfo.phone}
-                          onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all"
-                          placeholder="+54 9 11 ..."
-                        />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre y Apellido *</label>
+                        <input type="text" value={clientInfo.nombreApellido} onChange={(e) => setClientInfo({...clientInfo, nombreApellido: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Comercial *</label>
+                        <input type="text" value={clientInfo.nombreComercial} onChange={(e) => setClientInfo({...clientInfo, nombreComercial: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Rubro *</label>
+                        <input type="text" value={clientInfo.rubro} onChange={(e) => setClientInfo({...clientInfo, rubro: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico *</label>
+                        <input type="email" value={clientInfo.email} onChange={(e) => setClientInfo({...clientInfo, email: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono / WhatsApp *</label>
+                        <input type="tel" value={clientInfo.telefono} onChange={(e) => setClientInfo({...clientInfo, telefono: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Vendedor</label>
+                        <input type="text" value={clientInfo.vendedor} onChange={(e) => setClientInfo({...clientInfo, vendedor: e.target.value})} className="input-field" placeholder="¿Quién te vendió la publicidad?" />
                       </div>
                     </div>
+
+                    <h3 className="text-md font-bold text-gray-900 mb-4 border-t pt-4">Datos de Facturación y Contacto</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Domicilio Fiscal *</label>
+                        <input type="text" value={clientInfo.domicilioFiscal} onChange={(e) => setClientInfo({...clientInfo, domicilioFiscal: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Provincia *</label>
+                        <input type="text" value={clientInfo.provincia} onChange={(e) => setClientInfo({...clientInfo, provincia: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Localidad *</label>
+                        <input type="text" value={clientInfo.localidad} onChange={(e) => setClientInfo({...clientInfo, localidad: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Código Postal *</label>
+                        <input type="text" value={clientInfo.codigoPostal} onChange={(e) => setClientInfo({...clientInfo, codigoPostal: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Datos Impositivos *</label>
+                        <select 
+                          value={clientInfo.datosImpositivos} 
+                          onChange={(e) => setClientInfo({...clientInfo, datosImpositivos: e.target.value as any})} 
+                          className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal bg-white"
+                        >
+                          <option value="" disabled>Seleccionar...</option>
+                          <option value="Monotributo">Monotributo</option>
+                          <option value="IVA Inscripto">IVA Inscripto</option>
+                          <option value="IVA Exento">IVA Exento</option>
+                          <option value="Otro">Otro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sitio Web</label>
+                        <input type="text" value={clientInfo.sitioWeb} onChange={(e) => setClientInfo({...clientInfo, sitioWeb: e.target.value})} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+                        <input type="text" value={clientInfo.instagram} onChange={(e) => setClientInfo({...clientInfo, instagram: e.target.value})} className="input-field" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">¿Cómo nos conociste? *</label>
+                        <input type="text" value={clientInfo.comoNosConociste} onChange={(e) => setClientInfo({...clientInfo, comoNosConociste: e.target.value})} className="input-field" />
+                      </div>
+                    </div>
+
                     <div className="mt-6 flex justify-end">
                       <Button onClick={() => setStep('payment')} disabled={!canProceedToPayment} icon={<ArrowRight size={16} />}>
                         Continuar al pago
@@ -166,75 +266,66 @@ export default function Checkout() {
               {step === 'payment' && (
                 <motion.div key="payment" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
                   <Card>
-                    <h2 className="text-xl font-bold text-gray-900 mb-1">Pago seguro</h2>
-                    <p className="text-sm text-gray-400 mb-5 flex items-center gap-1.5"><Shield size={14} /> Procesado por Payway (modo sandbox)</p>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">Pago</h2>
+                    <p className="text-sm text-gray-400 mb-5">Seleccioná tu forma de pago preferida</p>
 
-                    {paymentResult === 'approved' ? (
-                      <motion.div
-                        className="text-center py-8"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                      >
+                    {paymentResult === 'pending' ? (
+                      <motion.div className="text-center py-8" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
                         <div className="w-16 h-16 mx-auto rounded-full bg-green-50 flex items-center justify-center mb-4">
                           <Check size={32} className="text-green" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">¡Pago aprobado!</h3>
+                        <h3 className="text-lg font-bold text-gray-900">¡Información recibida!</h3>
                         <p className="text-sm text-gray-500 mt-1">Redirigiendo al formulario de material...</p>
                       </motion.div>
                     ) : (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Número de tarjeta</label>
-                          <input
-                            type="text" value={cardData.cardNumber}
-                            inputMode="numeric" autoComplete="cc-number"
-                            onChange={(e) => setCardData({ ...cardData, cardNumber: e.target.value.replace(/\D/g, '').slice(0, 16) })}
-                            className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal font-mono tracking-wider"
-                            placeholder="4111 1111 1111 1111"
-                          />
+                      <div className="space-y-6">
+                        <div className="flex gap-4">
+                          <button
+                            onClick={() => setPaymentMethod('transferencia')}
+                            className={`flex-1 p-4 rounded-[var(--radius-lg)] border-2 transition-all text-left ${
+                              paymentMethod === 'transferencia' ? 'border-teal bg-teal-50' : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <Building2 className={`mb-2 ${paymentMethod === 'transferencia' ? 'text-teal' : 'text-gray-400'}`} />
+                            <h4 className={`font-semibold ${paymentMethod === 'transferencia' ? 'text-teal-dark' : 'text-gray-700'}`}>Transferencia</h4>
+                            <p className="text-xs text-gray-500 mt-1">Cargá el comprobante de pago.</p>
+                          </button>
+                          
+                          <button
+                            onClick={() => setPaymentMethod('mercadopago')}
+                            className={`flex-1 p-4 rounded-[var(--radius-lg)] border-2 transition-all text-left ${
+                              paymentMethod === 'mercadopago' ? 'border-teal bg-teal-50' : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <CreditCard className={`mb-2 ${paymentMethod === 'mercadopago' ? 'text-teal' : 'text-gray-400'}`} />
+                            <h4 className={`font-semibold ${paymentMethod === 'mercadopago' ? 'text-teal-dark' : 'text-gray-700'}`}>Mercado Pago</h4>
+                            <p className="text-xs text-gray-500 mt-1">Te contactaremos con el link de pago.</p>
+                          </button>
                         </div>
-                        <div className="grid grid-cols-3 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Mes</label>
-                            <input
-                              type="text" value={cardData.cardExpMonth}
-                              inputMode="numeric" autoComplete="cc-exp-month"
-                              onChange={(e) => setCardData({ ...cardData, cardExpMonth: e.target.value.slice(0, 2) })}
-                              className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal text-center"
-                              placeholder="MM"
-                            />
+
+                        {paymentMethod === 'transferencia' && (
+                          <div className="bg-gray-50 p-4 rounded-[var(--radius-md)] border border-gray-200 space-y-4">
+                            <div>
+                              <h5 className="font-semibold text-gray-800 text-sm">Datos Bancarios</h5>
+                              <p className="text-sm text-gray-600 mt-1">Banco: Banco Galicia</p>
+                              <p className="text-sm text-gray-600">CBU: 0070000000000000000000</p>
+                              <p className="text-sm text-gray-600">Alias: LA.TRONCAL</p>
+                              <p className="text-sm text-gray-600">Monto a transferir: <strong>${price.toLocaleString('es-AR')} + IVA</strong></p>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Adjuntar comprobante *</label>
+                              <div className="border-2 border-dashed border-gray-300 rounded-[var(--radius-md)] p-4 text-center bg-white">
+                                <input
+                                  type="file"
+                                  accept=".jpg,.jpeg,.png,.pdf"
+                                  onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal hover:file:bg-teal-100"
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
-                            <input
-                              type="text" value={cardData.cardExpYear}
-                              inputMode="numeric" autoComplete="cc-exp-year"
-                              onChange={(e) => setCardData({ ...cardData, cardExpYear: e.target.value.slice(0, 2) })}
-                              className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal text-center"
-                              placeholder="AA"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">CVV</label>
-                            <input
-                              type="text" value={cardData.cardCvv}
-                              inputMode="numeric" autoComplete="cc-csc"
-                              onChange={(e) => setCardData({ ...cardData, cardCvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                              className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal text-center"
-                              placeholder="123"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Titular</label>
-                          <input
-                            type="text" value={cardData.cardHolderName}
-                            autoComplete="cc-name"
-                            onChange={(e) => setCardData({ ...cardData, cardHolderName: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal"
-                            placeholder="Como figura en la tarjeta"
-                          />
-                        </div>
+                        )}
 
                         {paymentError && (
                           <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-[var(--radius-md)] border border-red-200">
@@ -242,12 +333,12 @@ export default function Checkout() {
                           </div>
                         )}
 
-                        <div className="flex justify-between mt-6">
+                        <div className="flex justify-between mt-6 pt-4 border-t">
                           <Button variant="ghost" onClick={() => setStep('summary')} icon={<ArrowLeft size={16} />}>
                             Volver
                           </Button>
-                          <Button onClick={handlePayment} loading={paymentLoading} icon={<CreditCard size={16} />}>
-                            Pagar ${price.toLocaleString('es-AR')}
+                          <Button onClick={handlePayment} disabled={!canProcessPayment} loading={paymentLoading} icon={<Check size={16} />}>
+                            {paymentMethod === 'transferencia' ? 'Enviar comprobante' : 'Solicitar Link de Pago'}
                           </Button>
                         </div>
                       </div>
@@ -258,57 +349,71 @@ export default function Checkout() {
 
               {step === 'upload' && (
                 <motion.div key="upload" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                  <UploadStep slot={slot} clientName={clientInfo.name} />
+                  <UploadStep slot={slot} clientName={clientInfo.nombreApellido || clientInfo.razonSocial} />
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Order summary sidebar */}
           <div className="lg:col-span-1">
             <Card className="sticky top-28">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Resumen</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Resumen de Contratación</h3>
               
-              {/* Slot visual */}
-              <div className="aspect-[0.685] w-full bg-gray-50 rounded-[var(--radius-md)] mb-4 border border-gray-200 relative flex items-center justify-center">
-                <div
-                  className="bg-teal/10 border-2 border-dashed border-teal/40 rounded-sm flex items-center justify-center"
-                  style={{
-                    width: slot.size === 'full' ? '80%' : slot.size === 'half' ? '80%' : '45%',
-                    height: slot.size === 'full' ? '85%' : slot.size === 'half' ? '42%' : slot.size === 'quarter' ? '42%' : '20%',
-                  }}
-                >
-                  <span className="text-[9px] text-teal font-medium">{dim.label}</span>
+              <div className="aspect-[0.685] w-full bg-gray-50 rounded-[var(--radius-md)] mb-4 border border-gray-200 relative flex items-center justify-center p-4">
+                <div className="bg-teal/10 border-2 border-dashed border-teal/40 w-full h-full rounded-sm flex items-center justify-center p-2 text-center">
+                  <span className="text-xs text-teal font-medium uppercase tracking-wider">{dim.label}</span>
                 </div>
               </div>
 
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Espacio</span>
-                  <span className="font-medium text-gray-800">{dim.label}</span>
+                  <span className="font-medium text-gray-800 text-right">{dim.label}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Dimensiones</span>
                   <span className="text-gray-700">{dim.width} × {dim.height} cm</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Página</span>
-                  <span className="text-gray-700">{slot.pageNumber}</span>
-                </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between mt-2 pt-2 border-t">
                   <span className="text-gray-500">Edición</span>
-                  <Badge variant="teal" size="sm">Jul-Ago 2026</Badge>
+                  <Badge variant="teal" size="sm">{edition?.title}</Badge>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 mt-4 pt-4 flex justify-between items-baseline">
-                <span className="text-sm font-medium text-gray-700">Total</span>
-                <span className="text-2xl font-bold text-gray-900">${price.toLocaleString('es-AR')}</span>
+              <div className="border-t border-gray-200 mt-4 pt-4">
+                <div className="flex justify-between items-baseline mb-1">
+                  <span className="text-sm text-gray-500">Subtotal</span>
+                  <span className="text-lg text-gray-900">${price.toLocaleString('es-AR')}</span>
+                </div>
+                <div className="flex justify-between items-baseline mb-3">
+                  <span className="text-sm text-gray-500">IVA (2.5%)</span>
+                  <span className="text-sm text-gray-900">${(price * 0.025).toLocaleString('es-AR')}</span>
+                </div>
+                <div className="flex justify-between items-baseline pt-2 border-t border-gray-100">
+                  <span className="text-sm font-bold text-gray-700">Total</span>
+                  <span className="text-2xl font-bold text-teal-dark">${(price * 1.025).toLocaleString('es-AR')}</span>
+                </div>
               </div>
             </Card>
           </div>
         </div>
       </div>
+      
+      <style>{`
+        .input-field {
+          width: 100%;
+          padding: 0.625rem 1rem;
+          border-radius: var(--radius-md);
+          border: 1px solid #d1d5db;
+          font-size: 0.875rem;
+          transition: all 0.2s;
+        }
+        .input-field:focus {
+          outline: none;
+          border-color: #0d9488;
+          box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+        }
+      `}</style>
     </div>
   );
 }
@@ -316,7 +421,7 @@ export default function Checkout() {
 // ---- Upload Step Component ----
 function UploadStep({ slot, clientName }: { slot: any; clientName: string }) {
   const [file, setFile] = useState<File | null>(null);
-  const [linkType, setLinkType] = useState<'web' | 'whatsapp'>('web');
+  const [linkType, setLinkType] = useState<LinkType>('web');
   const [link, setLink] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
@@ -330,15 +435,13 @@ function UploadStep({ slot, clientName }: { slot: any; clientName: string }) {
     if (!file || !link) return;
     setUploading(true);
     try {
-      // 1. Upload file to Firebase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `ads/${slot.id}_${Date.now()}.${fileExt}`;
       const storageRef = ref(storage, fileName);
       await uploadBytes(storageRef, file);
       const fileUrl = await getDownloadURL(storageRef);
 
-      // 2. Save material info via Cloud Function
-      const saveSlotMaterial = httpsCallable(functions, 'saveSlotMaterial');
+      const saveSlotMaterial = httpsCallable(functions, 'saveSlotMaterialV3');
       await saveSlotMaterial({
         slotId: slot.id,
         fileUrl,
@@ -358,20 +461,13 @@ function UploadStep({ slot, clientName }: { slot: any; clientName: string }) {
   if (uploaded) {
     return (
       <Card>
-        <motion.div
-          className="text-center py-8"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-        >
+        <motion.div className="text-center py-8" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           <div className="w-20 h-20 mx-auto rounded-full bg-green-50 flex items-center justify-center mb-4">
             <Check size={40} className="text-green" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900">¡Todo listo!</h2>
           <p className="text-gray-500 mt-2 max-w-sm mx-auto">
-            Tu material fue recibido. Recibirás un email de confirmación en <strong>{clientName}</strong>.
-          </p>
-          <p className="text-xs text-gray-400 mt-4">
-            Tu anuncio aparecerá en la edición Jul-Ago 2026 de La Troncal.
+            Tu material y datos fueron recibidos. Te contactaremos pronto a tu email.
           </p>
           <Link to="/" className="mt-6 inline-block">
             <Button variant="outline">Volver al inicio</Button>
@@ -383,17 +479,60 @@ function UploadStep({ slot, clientName }: { slot: any; clientName: string }) {
 
   return (
     <Card>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Subí tu material</h2>
-      <p className="text-sm text-gray-400 mb-5">Tu espacio está reservado. Subí tu diseño y definí el link de destino.</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">PUBLINOTA DIGITAL + QR</h2>
+      <p className="text-sm text-gray-400 mb-5 border-b pb-4">
+        Para el armado de la nota digital deberás enviar por MAIL a latroncaldenordelta@gmail.com.ar el contenido escrito de la nota (de 2 a 6 párrafos) + FOTOGRAFIAS. Luego que envíes el contenido desde La Troncal realizamos la EDICIÓN de la nota.
+      </p>
 
-      <div className="space-y-5">
-        {/* File upload */}
+      <div className="space-y-6 mt-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Archivo del anuncio</label>
-          <div className="border-2 border-dashed border-gray-300 rounded-[var(--radius-lg)] p-6 text-center hover:border-teal transition-colors cursor-pointer relative">
+          <label className="block text-sm font-bold text-gray-800 mb-3">¿Qué información querés linkear al QR de tu anuncio? *</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              { id: 'publinota', label: 'Publinota digital realizada en La Troncal' },
+              { id: 'web', label: 'WEB de tu marca' },
+              { id: 'instagram', label: 'Instagram de tu marca' },
+              { id: 'whatsapp', label: 'Número de WhatsApp' },
+              { id: 'otro', label: 'Otro' }
+            ].map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setLinkType(type.id as LinkType)}
+                className={`text-left p-3 rounded-[var(--radius-md)] text-sm font-medium border-2 transition-all
+                  ${linkType === type.id ? 'border-teal bg-teal-50 text-teal-dark' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-800 mb-2">
+            Según tu respuesta anterior, escribe a continuación web / Instagram / número de whatsapp que quieres linkear al QR *
+          </label>
+          <input
+            type="text"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all"
+            placeholder="Ej: https://... o @tuinstagram o +54911..."
+          />
+        </div>
+
+        <div className="border-t pt-6">
+          <h3 className="text-md font-bold text-gray-900 mb-2">REQUISITOS DE LA PIEZA GRÁFICA</h3>
+          <ul className="text-xs text-gray-500 space-y-1 mb-4 list-disc pl-4">
+            <li>Formato: .jpg, .tiff, .png o pdf, en tamaño real a 300 dpi. en CMYK.</li>
+            <li>Si hay texto en negro, el mismo debe estar en 100% de negro.</li>
+            <li>El archivo no tiene que estar pixelado, ni fuera de foco.</li>
+          </ul>
+          
+          <label className="block text-sm font-bold text-gray-800 mb-2">Subí el archivo de tu anuncio *</label>
+          <div className="border-2 border-dashed border-gray-300 rounded-[var(--radius-lg)] p-6 text-center hover:border-teal transition-colors cursor-pointer relative bg-gray-50">
             <input
               type="file"
-              accept=".jpg,.jpeg,.png,.tiff,.tif"
+              accept=".jpg,.jpeg,.png,.tiff,.tif,.pdf"
               onChange={handleFileChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
@@ -406,62 +545,21 @@ function UploadStep({ slot, clientName }: { slot: any; clientName: string }) {
             ) : (
               <div>
                 <Upload size={24} className="text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Arrastrá o hacé click para subir</p>
-                <p className="text-xs text-gray-400 mt-1">JPG, PNG o TIFF · Mínimo 300 DPI</p>
+                <p className="text-sm text-gray-500">Arrastrá o hacé click para subir tu diseño</p>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Link type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de link interactivo</label>
-          <div className="flex gap-2">
-            {(['web', 'whatsapp'] as const).map((type) => (
-              <button
-                key={type}
-                onClick={() => setLinkType(type)}
-                className={`flex-1 py-2.5 px-4 rounded-[var(--radius-md)] text-sm font-medium border-2 transition-all
-                  ${linkType === type
-                    ? 'border-teal bg-teal-50 text-teal-dark'
-                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}
-              >
-                {type === 'web' ? '🌐 Web' : '💬 WhatsApp'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Link input */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {linkType === 'web' ? 'URL de destino' : 'Número de WhatsApp'}
-          </label>
-          <input
-            type={linkType === 'web' ? 'url' : 'tel'}
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-[var(--radius-md)] border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all"
-            placeholder={linkType === 'web' ? 'https://www.miempresa.com.ar' : '+54 9 11 1234-5678'}
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            {linkType === 'web'
-              ? 'Este link se abrirá al hacer click en tu anuncio en la versión digital.'
-              : 'Se generará un link de WhatsApp con tu número.'
-            }
-          </p>
         </div>
 
         <Button
           onClick={handleUpload}
           loading={uploading}
           disabled={!file || !link}
-          className="w-full"
+          className="w-full mt-4"
           size="lg"
           icon={<Upload size={18} />}
         >
-          Enviar material
+          Enviar Todo
         </Button>
       </div>
     </Card>

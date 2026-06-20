@@ -69,7 +69,7 @@ export async function processPayment(
 ): Promise<PaymentResult> {
   
   // Llamamos a la Cloud Function segura
-  const processPaywayPayment = httpsCallable(functions, 'processPaywayPayment');
+  const processPaywayPayment = httpsCallable(functions, 'processPaywayPaymentV3');
 
   try {
     const result = await processPaywayPayment({

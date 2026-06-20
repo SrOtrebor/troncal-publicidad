@@ -50,7 +50,7 @@ function SlotOverlay({
         <div className="text-center p-1">
           <Badge variant="red" size="sm">VENDIDO</Badge>
           {slot.clientInfo && (
-            <p className="text-[8px] text-gray-400 mt-1 truncate max-w-full">{slot.clientInfo.name}</p>
+            <p className="text-[8px] text-gray-400 mt-1 truncate max-w-full">{slot.clientInfo.razonSocial || slot.clientInfo.nombreApellido}</p>
           )}
         </div>
       ) : isAvailable ? (

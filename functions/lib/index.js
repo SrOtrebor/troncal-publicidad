@@ -1,30 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.processPaywayPayment = void 0;
-const functions = require("firebase-functions");
+exports.saveSlotMaterialV3 = exports.processManualPaymentV1 = exports.processPaywayPaymentV3 = void 0;
+const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const axios_1 = require("axios");
 admin.initializeApp();
 const db = admin.firestore();
-// Valores simulados. Cuando el cliente te dé las credenciales reales, 
-// puedes configurarlas aquí o usar Firebase Secret Manager.
+// Valores simulados.
 const PAYWAY_PRIVATE_KEY = process.env.PAYWAY_KEY || 'TEST_PRIVATE_KEY_PAYWAY';
 const PAYWAY_URL = 'https://sandbox.decidir.com/api/v2/payments';
 // Callable function to process Payway payment
-exports.processPaywayPayment = functions.https.onCall(async (request) => {
-    const { token, amount, clientInfo, slotId } = request.data || {};
-    // Evitar error de variables no usadas temporalmente (no loggear Private Key):
+exports.processPaywayPaymentV3 = functions.https.onCall(async (data, context) => {
+    const { token, amount, clientInfo, slotId } = data || {};
     console.log("Mock Payway initialized", { PAYWAY_PRIVATE_KEY: !!PAYWAY_PRIVATE_KEY, PAYWAY_URL, axios: !!axios_1.default, clientInfo });
     if (!token || !amount || !clientInfo || !slotId) {
         throw new functions.https.HttpsError('invalid-argument', 'Faltan parámetros requeridos.');
     }
-    // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(clientInfo.email)) {
         throw new functions.https.HttpsError('invalid-argument', 'Formato de email inválido.');
     }
     try {
-        // Verificar que el slot existe y está disponible
         const slotRef = db.collection('slots').doc(slotId);
         const slotSnap = await slotRef.get();
         if (!slotSnap.exists) {
@@ -36,9 +32,6 @@ exports.processPaywayPayment = functions.https.onCall(async (request) => {
         }
         const editionId = slotData === null || slotData === void 0 ? void 0 : slotData.editionId;
         const slotSize = slotData === null || slotData === void 0 ? void 0 : slotData.size;
-        // ---------------------------------------------------------
-        // SIMULACIÓN ACTUAL (Sandbox Mock)
-        // ---------------------------------------------------------
         await new Promise(resolve => setTimeout(resolve, 1500));
         if (token.endsWith('0000')) {
             return {
@@ -47,16 +40,13 @@ exports.processPaywayPayment = functions.https.onCall(async (request) => {
             };
         }
         const transactionId = `txn_${Date.now()}_${slotId}`;
-        // Si el pago es exitoso, actualizar Firestore desde el servidor
         const batch = db.batch();
-        // 1. Marcar slot como vendido
         batch.update(slotRef, {
             status: 'sold',
             clientInfo,
             paymentId: transactionId,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
-        // 2. Registrar / Actualizar cliente
         const clientEmail = clientInfo.email.toLowerCase();
         const clientRef = db.collection('clients').doc(clientEmail);
         const clientSnap = await clientRef.get();
@@ -78,7 +68,6 @@ exports.processPaywayPayment = functions.https.onCall(async (request) => {
                 totalPurchases: 1
             });
         }
-        // 3. Crear notificación
         const notifRef = db.collection('notifications').doc();
         batch.set(notifRef, {
             id: notifRef.id,
@@ -94,7 +83,6 @@ exports.processPaywayPayment = functions.https.onCall(async (request) => {
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             emailSent: false
         });
-        // Ejecutar todas las escrituras de forma atómica
         await batch.commit();
         return {
             status: 'approved',
@@ -105,6 +93,109 @@ exports.processPaywayPayment = functions.https.onCall(async (request) => {
     catch (error) {
         console.error('Error processing payment:', error);
         throw new functions.https.HttpsError('internal', error.message || 'No se pudo procesar el pago.');
+    }
+});
+exports.processManualPaymentV1 = functions.https.onCall(async (data, context) => {
+    const { slotId, amount, clientInfo, method, receiptUrl } = data || {};
+    if (!amount || !clientInfo || !slotId || !method) {
+        throw new functions.https.HttpsError('invalid-argument', 'Faltan parámetros requeridos.');
+    }
+    try {
+        const slotRef = db.collection('slots').doc(slotId);
+        const slotSnap = await slotRef.get();
+        if (!slotSnap.exists) {
+            throw new functions.https.HttpsError('not-found', 'Espacio no encontrado.');
+        }
+        const slotData = slotSnap.data();
+        if ((slotData === null || slotData === void 0 ? void 0 : slotData.status) !== 'available') {
+            throw new functions.https.HttpsError('failed-precondition', 'El espacio seleccionado ya fue vendido o reservado.');
+        }
+        const editionId = slotData === null || slotData === void 0 ? void 0 : slotData.editionId;
+        const slotSize = slotData === null || slotData === void 0 ? void 0 : slotData.size;
+        const transactionId = `txn_manual_${Date.now()}_${slotId}`;
+        const batch = db.batch();
+        batch.update(slotRef, {
+            status: 'sold', // Lo marcamos como vendido, el admin luego lo verifica.
+            clientInfo,
+            paymentId: transactionId,
+            paymentMethod: method,
+            receiptUrl: receiptUrl || null,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        const clientEmail = clientInfo.email.toLowerCase();
+        const clientRef = db.collection('clients').doc(clientEmail);
+        const clientSnap = await clientRef.get();
+        if (clientSnap.exists) {
+            batch.update(clientRef, {
+                name: clientInfo.nombreApellido || clientInfo.razonSocial,
+                phone: clientInfo.telefono,
+                lastPurchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+                totalPurchases: admin.firestore.FieldValue.increment(1)
+            });
+        }
+        else {
+            batch.set(clientRef, {
+                name: clientInfo.nombreApellido || clientInfo.razonSocial,
+                email: clientEmail,
+                phone: clientInfo.telefono,
+                firstPurchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+                lastPurchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+                totalPurchases: 1
+            });
+        }
+        const notifRef = db.collection('notifications').doc();
+        batch.set(notifRef, {
+            id: notifRef.id,
+            type: 'sale',
+            editionId,
+            slotId,
+            clientName: clientInfo.nombreApellido || clientInfo.razonSocial,
+            clientEmail: clientEmail,
+            slotSize,
+            amount,
+            message: `Nueva reserva de espacio (${slotSize}) por ${method}`,
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            emailSent: false
+        });
+        await batch.commit();
+        return {
+            status: 'pending',
+            transactionId,
+            message: 'Intento de pago manual registrado exitosamente.'
+        };
+    }
+    catch (error) {
+        console.error('Error processing manual payment:', error);
+        throw new functions.https.HttpsError('internal', error.message || 'No se pudo procesar el pago manual.');
+    }
+});
+exports.saveSlotMaterialV3 = functions.https.onCall(async (data, context) => {
+    const { slotId, fileUrl, destinationLink, linkType } = data || {};
+    if (!slotId || !fileUrl || !destinationLink || !linkType) {
+        throw new functions.https.HttpsError('invalid-argument', 'Faltan parámetros requeridos.');
+    }
+    try {
+        const slotRef = db.collection('slots').doc(slotId);
+        const slotSnap = await slotRef.get();
+        if (!slotSnap.exists) {
+            throw new functions.https.HttpsError('not-found', 'Espacio no encontrado.');
+        }
+        const slotData = slotSnap.data();
+        if ((slotData === null || slotData === void 0 ? void 0 : slotData.status) !== 'sold') {
+            throw new functions.https.HttpsError('failed-precondition', 'El espacio no está vendido o ya fue configurado.');
+        }
+        await slotRef.update({
+            fileUrl,
+            destinationLink,
+            linkType,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return { success: true };
+    }
+    catch (error) {
+        console.error('Error saving material:', error);
+        throw new functions.https.HttpsError('internal', error.message || 'No se pudo guardar el material.');
     }
 });
 //# sourceMappingURL=index.js.map

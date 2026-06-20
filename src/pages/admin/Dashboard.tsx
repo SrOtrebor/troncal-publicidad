@@ -640,7 +640,7 @@ function SlotsView({ slots }: { slots: Slot[] }) {
                 {slot.clientInfo && (
                   <div className="flex justify-between">
                     <span>Cliente</span>
-                    <span className="font-medium text-gray-700 truncate max-w-[120px]">{slot.clientInfo.name}</span>
+                    <span className="font-medium text-gray-700 truncate max-w-[120px]">{slot.clientInfo.razonSocial || slot.clientInfo.nombreApellido}</span>
                   </div>
                 )}
               </div>
@@ -702,7 +702,7 @@ function MaterialsView({ slots }: { slots: Slot[] }) {
                   <p className="text-[10px] text-gray-400">{slot.renamedFileName || 'Sin archivo'}</p>
                 </div>
               </div>
-              <p className="text-sm font-semibold text-gray-800">{slot.clientInfo?.name}</p>
+              <p className="text-sm font-semibold text-gray-800">{slot.clientInfo?.razonSocial || slot.clientInfo?.nombreApellido}</p>
               <p className="text-xs text-gray-400">{SLOT_DIMENSIONS[slot.size].label} · Pág. {slot.pageNumber}</p>
               {slot.destinationLink && (
                 <p className="text-xs text-teal mt-1 truncate">{slot.destinationLink}</p>

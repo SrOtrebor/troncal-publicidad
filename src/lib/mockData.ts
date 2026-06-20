@@ -6,9 +6,13 @@ import type { Edition, Slot, PricingConfig, AppSettings, Notification } from '..
 
 // --- Pricing ---
 export const mockPricing: PricingConfig = {
-  full: 45000,
-  half: 28000,
   quarter: 16000,
+  half: 28000,
+  full: 45000,
+  'retiro-tapa': 50000,
+  indice: 20000,
+  'retiro-contratapa': 50000,
+  contratapa: 60000,
   eighth: 9000,
   updatedAt: new Date(),
 };
@@ -54,7 +58,7 @@ export const mockSlots: Slot[] = [
     dimensions: { width: 12.6, height: 18.4 },
     price: 45000,
     status: 'sold',
-    clientInfo: { name: 'Casino Nordelta', email: 'mkt@casinord.com', phone: '1155551234' },
+    clientInfo: { razonSocial: 'Casino Nordelta', cuitCuil: '', nombreApellido: '', nombreComercial: '', rubro: '', email: 'mkt@casinord.com', telefono: '1155551234', domicilioFiscal: '', provincia: '', localidad: '', codigoPostal: '', sitioWeb: '', instagram: '', comoNosConociste: '', vendedor: '', datosImpositivos: '' },
     paymentId: 'pay-001',
     fileUrl: '',
     renamedFileName: 'slot-p02-full_CasinoNordelta_20260610.jpg',
@@ -85,7 +89,7 @@ export const mockSlots: Slot[] = [
     dimensions: { width: 6.15, height: 9 },
     price: 16000,
     status: 'sold',
-    clientInfo: { name: 'Escuelas del Sol', email: 'info@escuelasdelsol.com', phone: '1155559876' },
+    clientInfo: { razonSocial: 'Escuelas del Sol', cuitCuil: '', nombreApellido: '', nombreComercial: '', rubro: '', email: 'info@escuelasdelsol.com', telefono: '1155559876', domicilioFiscal: '', provincia: '', localidad: '', codigoPostal: '', sitioWeb: '', instagram: '', comoNosConociste: '', vendedor: '', datosImpositivos: '' },
     paymentId: 'pay-002',
     fileUrl: '',
     renamedFileName: 'slot-p03-quarter-bl_EscuelasdelSol_20260611.jpg',
@@ -128,7 +132,7 @@ export const mockSlots: Slot[] = [
     dimensions: { width: 6.15, height: 4.37 },
     price: 9000,
     status: 'sold',
-    clientInfo: { name: 'Veterinaria Nordelta', email: 'vet@nordelta.com', phone: '1155553333' },
+    clientInfo: { razonSocial: 'Veterinaria Nordelta', cuitCuil: '', nombreApellido: '', nombreComercial: '', rubro: '', email: 'vet@nordelta.com', telefono: '1155553333', domicilioFiscal: '', provincia: '', localidad: '', codigoPostal: '', sitioWeb: '', instagram: '', comoNosConociste: '', vendedor: '', datosImpositivos: '' },
     paymentId: 'pay-003',
     fileUrl: '',
     renamedFileName: 'slot-p04-eighth-bl_VeterinariaNordelta_20260612.jpg',
