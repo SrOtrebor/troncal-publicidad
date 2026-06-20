@@ -108,8 +108,8 @@ export default function Landing() {
                   <div className="bg-white rounded-lg shadow-xl overflow-hidden aspect-[0.685] relative border border-gray-200">
                     {/* Simulated cover */}
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center p-8">
-                      <div className="w-16 h-16 rounded-full gradient-teal flex items-center justify-center mb-4">
-                        <span className="text-white font-bold text-xl">LT</span>
+                      <div className="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center mb-4 p-3 border border-gray-100">
+                        <img src="/favicon.svg" alt="La Troncal" className="w-full h-full object-contain" />
                       </div>
                       <h3 className="text-xl font-bold text-gray-800 font-[family-name:var(--font-display)] text-center">
                         La Troncal
