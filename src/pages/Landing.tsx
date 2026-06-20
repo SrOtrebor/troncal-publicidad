@@ -57,7 +57,8 @@ export default function Landing() {
                 Publicitá en <br /><span className="text-gradient-teal whitespace-nowrap">La Troncal</span>
               </h1>
               <p className="mt-5 text-lg text-gray-300 max-w-xl leading-relaxed">
-                Guía Ruta Comercial 27 gráfica y digital.<br />
+                Guía Ruta Comercial 27<br />
+                gráfica y digital.<br />
                 Hiperlocal, interactiva y multimedial.<br />
                 Alcance directo a tu público objetivo.
               </p>
@@ -161,8 +162,8 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div className="text-center mb-16" {...fadeInUp}>
             <h2 className="text-4xl sm:text-5xl font-bold font-[family-name:var(--font-display)] text-white drop-shadow-sm">
-              6 Formatos Publicitarios <br className="hidden sm:block" />
-              <span className="text-green-300">al precio de 1</span>
+              6 Formatos Publicitarios <br />
+              <span className="text-green-300 whitespace-nowrap">al precio de 1</span>
             </h2>
             <p className="mt-6 text-xl text-teal-50 max-w-2xl mx-auto font-medium">
               Tu marca por todos lados. Más visibilidad, más alcance, mejores resultados.
