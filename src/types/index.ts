@@ -22,7 +22,7 @@ export const SLOT_DIMENSIONS: Record<SlotSize, { width: number; height: number; 
   half:                { width: 12.6,  height: 9,     label: '1/2 de página' },
   full:                { width: 12.6,  height: 18.4,  label: '1 página entera' },
   'retiro-tapa':       { width: 12.6,  height: 18.4,  label: 'RETIRO DE TAPA' },
-  indice:              { width: 12.6,  height: 18.4,  label: 'ÍNDICE' },
+  indice:              { width: 12.6,  height: 9,     label: 'ÍNDICE' },
   'retiro-contratapa': { width: 12.6,  height: 18.4,  label: 'RETIRO DE CONTRATAPA' },
   contratapa:          { width: 12.6,  height: 18.4,  label: 'CONTRATAPA' },
   eighth:              { width: 6.15,  height: 4.37,  label: 'OCTAVO DE PÁGINA' },

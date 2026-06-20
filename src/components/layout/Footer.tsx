@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ExternalLink, Mail, Phone, MapPin } from 'lucide-react';
+import { ExternalLink, Mail, Phone, MapPin, Globe } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -17,8 +17,9 @@ export function Footer() {
               </div>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
-              La revista bimestral de Nordelta, Tigre y alrededores. 
-              Conectamos marcas con la comunidad a través de publicidad impresa e interactiva digital.
+              Guía Ruta comercial 27<br />
+              Publicidad gráfica y digital.<br />
+              Alcance directo a tu público objetivo.
             </p>
             <div className="flex gap-3 mt-5">
               {[
@@ -69,15 +70,27 @@ export function Footer() {
             </h4>
             <ul className="space-y-3">
               <li className="flex items-center gap-3 text-sm">
+                <Globe size={16} className="text-teal shrink-0" />
+                <a href="https://www.latroncal.com.ar" target="_blank" rel="noopener noreferrer" className="hover:text-teal transition-colors">
+                  www.latroncal.com.ar
+                </a>
+              </li>
+              <li className="flex items-center gap-3 text-sm">
                 <Mail size={16} className="text-teal shrink-0" />
-                <a href="mailto:publicidad@latroncal.com.ar" className="hover:text-teal transition-colors">
-                  publicidad@latroncal.com.ar
+                <a href="mailto:latroncaldenordelta@gmail.com" className="hover:text-teal transition-colors">
+                  latroncaldenordelta@gmail.com
+                </a>
+              </li>
+              <li className="flex items-center gap-3 text-sm">
+                <span className="text-teal font-bold shrink-0">@</span>
+                <a href="https://instagram.com/latroncaldenordelta" target="_blank" rel="noopener noreferrer" className="hover:text-teal transition-colors">
+                  @latroncaldenordelta
                 </a>
               </li>
               <li className="flex items-center gap-3 text-sm">
                 <Phone size={16} className="text-teal shrink-0" />
-                <a href="tel:+5491100000000" className="hover:text-teal transition-colors">
-                  +54 9 11 0000-0000
+                <a href="tel:+5491140300942" className="hover:text-teal transition-colors">
+                  +54 9 11 4030-0942
                 </a>
               </li>
               <li className="flex items-start gap-3 text-sm">

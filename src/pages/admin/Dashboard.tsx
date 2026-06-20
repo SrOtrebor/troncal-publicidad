@@ -474,7 +474,7 @@ function PricingView({ pricing, setPricing, saved, onSave }: { pricing: PricingC
                   <span className="text-sm text-gray-500">$</span>
                   <input
                     type="number"
-                    value={pricing[size]}
+                    value={pricing[size] || 0}
                     onChange={(e) => setPricing({ ...pricing, [size]: Number(e.target.value) })}
                     className="w-32 px-3 py-2 rounded-[var(--radius-md)] border border-gray-300 text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal"
                   />
@@ -511,6 +511,27 @@ function PricingView({ pricing, setPricing, saved, onSave }: { pricing: PricingC
 // Editions View
 // =========================================
 function EditionsView({ edition }: { edition: any }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({ 
+    title: edition?.title || '', 
+    period: edition?.period || '',
+    printDeadline: edition?.printDeadline ? new Date(edition.printDeadline).toISOString().split('T')[0] : ''
+  });
+
+  const handleSave = async () => {
+    try {
+      await updateDoc(doc(db, 'editions', edition.id), {
+        title: formData.title,
+        period: formData.period,
+        printDeadline: new Date(formData.printDeadline)
+      });
+      setIsEditing(false);
+      alert('Cambios guardados con éxito');
+    } catch(e) {
+      alert('Error al guardar los cambios');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -519,6 +540,27 @@ function EditionsView({ edition }: { edition: any }) {
       </div>
 
       <Card>
+        {isEditing ? (
+          <div className="space-y-4 p-4 bg-gray-50 rounded-[var(--radius-md)] border border-gray-200">
+            <h3 className="font-bold text-gray-900">Editar Edición Actual</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
+              <input type="text" className="w-full p-2 border border-gray-300 rounded-[var(--radius-sm)] outline-none focus:ring-2 focus:ring-teal" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bimestre / Periodo</label>
+              <input type="text" className="w-full p-2 border border-gray-300 rounded-[var(--radius-sm)] outline-none focus:ring-2 focus:ring-teal" value={formData.period} onChange={e => setFormData({...formData, period: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Cierre Imprenta</label>
+              <input type="date" className="w-full p-2 border border-gray-300 rounded-[var(--radius-sm)] outline-none focus:ring-2 focus:ring-teal" value={formData.printDeadline} onChange={e => setFormData({...formData, printDeadline: e.target.value})} />
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button onClick={handleSave} size="sm">Guardar Cambios</Button>
+              <Button onClick={() => setIsEditing(false)} variant="outline" size="sm">Cancelar</Button>
+            </div>
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -539,12 +581,13 @@ function EditionsView({ edition }: { edition: any }) {
                 <td className="py-3 text-gray-600">{edition.printDeadline.toLocaleDateString('es-AR')}</td>
                 <td className="py-3 text-gray-600">{edition.soldSlots}/{edition.totalSlots}</td>
                 <td className="py-3">
-                  <Button variant="ghost" size="sm">Editar</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>Editar</Button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+        )}
       </Card>
     </div>
   );

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Eye, Globe, Zap, BookOpen, Smartphone, TrendingUp } from 'lucide-react';
+import { ArrowRight, Eye, Globe, Zap, BookOpen, Smartphone, TrendingUp, ExternalLink } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -51,15 +51,15 @@ export default function Landing() {
               transition={{ duration: 0.8, ease: 'easeOut' as const }}
             >
               <Badge variant="teal" size="md" dot>
-                Edición Jul-Ago 2026 — Espacios disponibles
+                Agosto 2026 — Espacios disponibles
               </Badge>
               <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1]">
-                Publicitá en{' '}
-                <span className="text-gradient-teal">La Troncal</span>
+                Publicitá en <span className="text-gradient-teal">La Troncal</span>
               </h1>
               <p className="mt-5 text-lg text-gray-300 max-w-xl leading-relaxed">
-                La revista bimestral de Nordelta y alrededores. Tu marca en formato impreso 
-                con <strong className="text-white">hipervínculos interactivos</strong> en la edición digital.
+                Guía Ruta comercial 27 gráfica y digital.<br />
+                Hiperlocal, interactiva y multimedial.<br />
+                Alcance directo a tu público objetivo.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link to="/espacios">
@@ -113,7 +113,7 @@ export default function Landing() {
                       <h3 className="text-xl font-bold text-gray-800 font-[family-name:var(--font-display)] text-center">
                         La Troncal
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">Edición Jul-Ago 2026</p>
+                      <p className="text-sm text-gray-500 mt-1">Agosto 2026</p>
                       <div className="mt-6 w-full space-y-2">
                         <div className="h-2 bg-gray-200 rounded-full w-full" />
                         <div className="h-2 bg-gray-200 rounded-full w-4/5" />
@@ -127,6 +127,9 @@ export default function Landing() {
                           <span className="text-[10px] text-green font-medium">✓ VENDIDO</span>
                         </div>
                       </div>
+                      <a href="https://linktr.ee/LatroncaldeNordelta" target="_blank" rel="noopener noreferrer" className="mt-4 w-full bg-teal text-white text-xs font-bold py-2 rounded-md hover:bg-teal-dark transition-colors flex items-center justify-center gap-2">
+                        Ver ediciones digitales <ExternalLink size={12} />
+                      </a>
                     </div>
                   </div>
                   {/* Shadow pages behind */}
@@ -140,10 +143,56 @@ export default function Landing() {
                   animate={{ y: [0, -6, 0] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  5 espacios libres
+                  Espacios disponibles
                 </motion.div>
               </div>
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          6x1 SECTION
+          ================================================================ */}
+      <section className="py-20 bg-teal text-white overflow-hidden relative">
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute bottom-[-30%] left-[-15%] w-[600px] h-[600px] rounded-full bg-white/5 blur-3xl" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div className="text-center mb-16" {...fadeInUp}>
+            <h2 className="text-4xl sm:text-5xl font-bold font-[family-name:var(--font-display)] text-white drop-shadow-sm">
+              6 Formatos Publicitarios <br className="hidden sm:block" />
+              <span className="text-green-300">al precio de 1</span>
+            </h2>
+            <p className="mt-6 text-xl text-teal-50 max-w-2xl mx-auto font-medium">
+              Tu marca por todos lados. Más visibilidad, más alcance, mejores resultados.
+            </p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { title: 'Aviso Impreso', desc: 'Full color con distribución física estratégica.', icon: <BookOpen size={24} /> },
+              { title: 'Guía Digital', desc: 'Tu marca siempre disponible online de forma interactiva.', icon: <Globe size={24} /> },
+              { title: 'Reposteo en Redes', desc: 'Más alcance para tu marca a través de nuestros canales.', icon: <Smartphone size={24} /> },
+              { title: 'Publinota', desc: 'Artículo en La Troncal (medio de noticias online).', icon: <Eye size={24} /> },
+              { title: 'Entrevista', desc: 'En Camino Emprendedor. Contá la historia de tu marca.', icon: <Zap size={24} /> },
+              { title: 'Eventos Exclusivos', desc: 'Networking y experiencias que generan oportunidades.', icon: <TrendingUp size={24} /> },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 hover:bg-white/15 transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
+              >
+                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white mb-4">
+                  {item.icon}
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
+                <p className="text-teal-50 text-sm leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -158,7 +207,7 @@ export default function Landing() {
               ¿Por qué publicitar en La Troncal?
             </h2>
             <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-              Más que una revista: una plataforma multimedia que conecta tu marca con la comunidad de Nordelta y alrededores.
+              Más que una Guía: una plataforma multimedia que conecta tu marca con la comunidad de Nordelta y alrededores.
             </p>
           </motion.div>
 
@@ -166,20 +215,20 @@ export default function Landing() {
             {[
               {
                 icon: <Eye size={28} />,
-                title: 'Alcance en Nordelta',
-                description: 'Llegá a miles de familias en Nordelta, Tigre y zonas aledañas con cada edición bimestral impresa y digital.',
+                title: 'Alcance Hiperlocal',
+                description: 'Llega a miles de vecinos con alto poder de consumo en Nordelta, Villanueva, Bancalari, Maschwitz y Puertos.',
                 color: 'teal',
               },
               {
                 icon: <Globe size={28} />,
                 title: 'Interactividad Digital',
-                description: 'Cada anuncio en la edición digital incluye un hipervínculo interactivo a tu web o WhatsApp.',
+                description: 'Cada anuncio incluye un hipervínculo interactivo a tu web, WhatsApp o Instagram.',
                 color: 'green',
               },
               {
                 icon: <Zap size={28} />,
-                title: 'Proceso Simple',
-                description: 'Elegí tu espacio, pagá online y subí tu material. Sin idas y vueltas, todo desde esta plataforma.',
+                title: 'Publicitá de manera simple y ágil',
+                description: 'Elegí tu tamaño, pagá online y subí tu contenido. ¡Y ya estas publicitando en la próxima edición! Espacios limitados',
                 color: 'teal',
               },
             ].map((benefit, i) => (
@@ -228,19 +277,19 @@ export default function Landing() {
                 step: '01',
                 icon: <BookOpen size={24} />,
                 title: 'Elegí tu espacio',
-                desc: 'Hojeá la revista interactiva y seleccioná el tamaño y ubicación que prefieras.',
+                desc: 'Mirá la guia digital, imaginando que en la próxima ya aparecerá tu marca. Seleccioná el tamaño que queres publicitar.',
               },
               {
                 step: '02',
                 icon: <Smartphone size={24} />,
-                title: 'Pagá online',
-                desc: 'Completá el pago seguro con tarjeta. Sin intermediarios, instantáneo.',
+                title: 'Pagá online por tarjeta o transferencia',
+                desc: 'Ya estas muy cerca para que tu marca se luzca en la próxima edición de la Guia RC27 (con opción a subir tu comprobante de transferencia o pagar con tarjeta).',
               },
               {
                 step: '03',
                 icon: <TrendingUp size={24} />,
-                title: 'Subí tu material',
-                desc: 'Cargá tu diseño y definí el link de destino (web o WhatsApp).',
+                title: 'Subí tu contenido',
+                desc: 'Cargá tu diseño y elegí el link de destino del QR (web / WhatsApp / Instagram). El QR podes ponerlo vos o lo agregamos nosotros.',
               },
             ].map((item, i) => (
               <motion.div
@@ -275,7 +324,7 @@ export default function Landing() {
               Espacios y Precios
             </h2>
             <p className="mt-4 text-gray-500 max-w-xl mx-auto">
-              Elegí el tamaño ideal para tu marca. Todos los espacios incluyen versión impresa + digital con hipervínculo interactivo.
+              Elegí el tamaño ideal para tu marca. Los precios son sin IVA (+ IVA 2.5%). ¡Aprovechá nuestra promoción por 3 meses!
             </p>
           </motion.div>
 
@@ -328,13 +377,19 @@ export default function Landing() {
 
                     <ul className="mt-4 space-y-1.5 text-xs text-gray-500">
                       <li className="flex items-center gap-2">
-                        <span className="text-green">✓</span> Impreso + Digital
+                        <span className="text-green">✓</span> Impreso + Digital c/ QR interactivo
                       </li>
                       <li className="flex items-center gap-2">
-                        <span className="text-green">✓</span> Link interactivo
+                        <span className="text-green">✓</span> Publinota
                       </li>
                       <li className="flex items-center gap-2">
-                        <span className="text-green">✓</span> JPG, PNG o TIFF
+                        <span className="text-green">✓</span> Entrevista radial
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="text-green">✓</span> Redes sociales
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="text-green">✓</span> Eventos exclusivos
                       </li>
                     </ul>
 
@@ -369,10 +424,10 @@ export default function Landing() {
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/3 -translate-x-1/4" />
             <div className="relative z-10">
               <h2 className="text-3xl sm:text-4xl font-bold">
-                ¿Listo para publicitar?
+                ¿Tu marca lista para publicitar?
               </h2>
               <p className="mt-4 text-white/80 max-w-lg mx-auto">
-                La próxima edición cierra pronto. Asegurá tu espacio ahora y llegá a toda la comunidad de Nordelta.
+                La próxima edición cierra pronto. Reservá tu espacio ahora y llegá a toda la comunidad de Nordelta, Villanueva, Maschwitz, Puertos y mucho más.
               </p>
               <div className="mt-8">
                 <Link to="/espacios">

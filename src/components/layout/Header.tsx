@@ -17,7 +17,7 @@ export function Header() {
     <header className="sticky top-0 z-40 w-full">
       {/* Top teal bar */}
       <div className="gradient-teal text-white text-xs py-1.5 text-center tracking-wide font-medium">
-        Nordelta · Tigre · Alrededores — La revista de tu zona
+        Nordelta · Tigre · Alrededores — La Guía de tu zona
       </div>
 
       {/* Main nav */}

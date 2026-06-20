@@ -30,10 +30,10 @@ export const mockSettings: AppSettings = {
 // --- Edition ---
 export const mockEdition: Edition = {
   id: 'ed-001',
-  title: 'Edición Julio-Agosto 2026',
+  title: 'Edición Agosto 2026',
   number: 42,
   status: 'active',
-  period: 'Jul-Ago 2026',
+  period: 'Agosto 2026',
   publicationDate: new Date('2026-07-15'),
   printDeadline: new Date('2026-07-01'),
   printDate: new Date('2026-07-08'),
