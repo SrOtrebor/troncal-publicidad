@@ -27,7 +27,7 @@ export default function Landing() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-teal font-medium">Cargando la Troncal...</div>
+        <div className="text-teal font-medium">Cargando La Troncal...</div>
       </div>
     );
   }
