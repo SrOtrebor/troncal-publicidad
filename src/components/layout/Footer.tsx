@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Globe, Instagram, MessageCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, Globe, MessageCircle } from 'lucide-react';
+
+const InstagramIcon = ({ size = 16 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+);
 
 export function Footer() {
   return (
@@ -23,7 +27,7 @@ export function Footer() {
             <div className="flex gap-3 mt-5">
               {[
                 { icon: MessageCircle, href: 'https://wa.me/5491140300942' },
-                { icon: Instagram, href: 'https://instagram.com/latroncaldenordelta' },
+                { icon: InstagramIcon, href: 'https://instagram.com/latroncaldenordelta' },
                 { icon: Mail, href: 'mailto:latroncaldenordelta@gmail.com' },
               ].map(({ icon: Icon, href }, i) => (
                 <a
