@@ -216,7 +216,7 @@ export default function Landing() {
               {
                 icon: <Eye size={28} />,
                 title: 'Alcance Hiperlocal',
-                description: 'Llega a miles de vecinos con alto poder de consumo en Nordelta, Villanueva, Bancalari, Maschwitz y Puertos.',
+                description: 'Llegá a miles de vecinos con alto poder de consumo en Nordelta, Villanueva, Bancalari, Maschwitz y Puertos.',
                 color: 'teal',
               },
               {
