@@ -1,68 +1,44 @@
-# La Troncal — Plataforma de Gestión Publicitaria
+# La Troncal Publicidad - Panel y Landing Page
 
-Plataforma web integral para automatizar la venta, cobro y recepción de archivos de espacios publicitarios para la revista **"La Troncal"**. El sistema permite a los clientes seleccionar un espacio publicitario en una revista interactiva 3D, pagarlo, subir su material gráfico y generar una base de datos automatizada para campañas de marketing.
+Plataforma integral para gestión de espacios publicitarios de "La Troncal - Guía Comercial Ruta 27".
 
-**URL de Producción:** [https://latroncal-publicidad.web.app](https://latroncal-publicidad.web.app)
+## Resumen de Funcionalidades Implementadas
 
----
+A lo largo del proyecto, se han integrado y mejorado múltiples características tanto en la interfaz orientada a clientes (Landing Page) como en el panel de administración.
 
-## 🚀 Tecnologías
+### 1. Landing Page y Experiencia de Usuario (Front-end)
+*   **Rebranding y Textos**:
+    *   Se adaptó la comunicación para referirse al producto como **"Guía"** en lugar de "revista".
+    *   Actualización de llamados a la acción, reemplazando contadores estáticos (ej. "5 espacios libres") por textos dinámicos ("Espacios disponibles").
+    *   Se agregó la aclaración de que "Los precios son sin IVA (+ IVA 2.5%). ¡Aprovechá nuestra promoción por 3 meses!".
+*   **Propuesta de Valor (6 Formatos por 1)**:
+    *   Se reemplazó la clásica galería de flyers por una **sección dinámica e integrada al diseño** que lista los 6 beneficios de publicitar: Aviso Impreso, Guía Digital, Reposteo en Redes, Publinota, Entrevista radial (Camino Emprendedor) y Eventos Exclusivos.
+*   **Alcance Hiperlocal**:
+    *   Se detalló el alcance estratégico mencionando zonas clave con alto poder de consumo: *Nordelta, Villanueva, Bancalari, Maschwitz y Puertos*.
+*   **Enlaces y Redes**:
+    *   Integración del Linktree oficial en la comunicación ([linktr.ee/LatroncaldeNordelta](https://linktr.ee/LatroncaldeNordelta)).
 
-- **Frontend:** React 19, TypeScript, Vite 6
-- **Estilos:** Tailwind CSS v4, Framer Motion (Animaciones fluidas)
-- **Revista Interactiva:** `react-pageflip`
-- **Backend (BaaS):** Firebase (Firestore, Storage, Auth, Hosting)
-- **Procesamiento de Pagos:** Payway (vía Cloud Functions en Node.js)
-- **Íconos:** Lucide React
+### 2. Panel de Administración (Back-office)
+*   **Ampliación de Formatos Publicitarios**:
+    *   Se añadieron 4 nuevas categorías de espacios destacados: `retiro de tapa` (página entera), `índice` (media página), `retiro de contratapa` (página entera) y `contratapa` (página entera).
+*   **Configuración de Precios Dinámica**:
+    *   El módulo de "Configuración de Precios" del administrador ahora detecta automáticamente estas nuevas 4 columnas de valores, permitiendo editarlas en tiempo real desde la plataforma.
+*   **Gestión de Ediciones (Edición de metadatos)**:
+    *   Se implementó la funcionalidad en el botón "Editar" dentro del listado de ediciones.
+    *   Los administradores pueden modificar directamente el *Título*, el *Bimestre (Periodo)* y la *Fecha de Cierre de Imprenta* de la edición actual mediante un formulario en pantalla.
 
----
-
-## 🛠️ Estado Actual del Proyecto
-
-El proyecto se encuentra en un estado funcional avanzado. La plataforma está 100% conectada a Firebase y está desplegada en internet.
-
-### Hitos completados:
-- [x] **Base de Datos en Tiempo Real:** Los espacios, precios, configuraciones y notificaciones se guardan y actualizan instantáneamente en Firebase Firestore.
-- [x] **Seguridad y Autenticación:** El Panel de Administrador (`/admin`) está completamente protegido usando Firebase Authentication. Además, las Reglas de Seguridad de Firestore aseguran que *únicamente* el UID del dueño pueda leer o escribir en tablas sensibles.
-- [x] **Gestión de Espacios:** Se pueden liberar (borrar) espacios individualmente o de manera masiva.
-- [x] **Gestión de Clientes:** Se agregó una base de datos automática. Al realizar una compra, el sistema guarda al cliente, fecha y datos de contacto, permitiendo filtrarlos y exportarlos en `.csv` para email marketing.
-- [x] **Exportación ZIP:** Los diseños subidos por los clientes pueden ser descargados de manera agrupada en un solo archivo `.zip` para enviarlos a la imprenta.
-- [x] **Diseño Corporativo:** Adaptación completa a la paleta de colores y tipografía oficial de `latroncal.com.ar`.
-- [x] **Despliegue Continuo:** Aplicación desplegada y funcional en Firebase Hosting.
-
----
-
-## 🏗️ Arquitectura de Carpetas
-
-- `/src/components`: Componentes reutilizables de UI (Botones, Tarjetas, layout, etc.).
-- `/src/pages`: Las páginas principales (Landing, Selección de Espacio, Checkout y Dashboard Admin).
-- `/src/hooks`: Conexiones y lógica de negocio con Firebase (`useAuth`, `useSlots`, `useClients`, etc.).
-- `/src/types`: Definiciones de TypeScript (interfaces de base de datos).
-- `/src/lib`: Scripts de conexión de librerías externas (Firebase, Payway).
-- `/functions`: Servidor Node.js para Firebase Cloud Functions (Procesa los pagos de forma segura sin exponer credenciales al cliente).
+### 3. Base de Datos y Despliegue
+*   Actualización de la metadata estática y estructuración de los tipos (`types/index.ts`).
+*   Despliegues continuos y exitosos a Firebase Hosting.
+*   Sincronización con el repositorio de Git en GitHub.
 
 ---
 
-## 🔐 Acceso al Administrador
+### Tecnologías Utilizadas
+*   React + TypeScript
+*   Vite (Build Tool)
+*   Tailwind CSS (Estilos y Diseño UI)
+*   Framer Motion (Animaciones)
+*   Firebase (Hosting, Firestore Database)
 
-1. Ingresar a `https://latroncal-publicidad.web.app/admin`
-2. Usar el **Email** y la **Contraseña** registrados en Firebase Console.
-3. Si el ingreso es exitoso, el sistema desbloquea el panel (Dashboard, Precios, Ediciones, Clientes, Materiales, Exportación).
-
----
-
-## 💻 Comandos Útiles de Desarrollo
-
-```bash
-# Iniciar servidor local (con hot-reload)
-npm run dev
-
-# Chequear tipado y compilar proyecto
-npm run build
-
-# Subir a internet (Firebase Hosting)
-npx firebase deploy --only hosting
-
-# Actualizar reglas de base de datos
-npx firebase deploy --only firestore:rules
-```
+> **Sitio en Producción:** [https://latroncal-publicidad.web.app](https://latroncal-publicidad.web.app)
