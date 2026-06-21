@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, collection, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
-import type { Edition, PricingConfig, AppSettings, Slot, Notification, ClientRecord } from '../types';
+import type { Edition, PricingConfig, AppSettings, Slot, Notification, ClientRecord, CustomPaymentLink } from '../types';
 
 // Utility to convert Firestore timestamps to JS Dates
 const convertTimestamps = (data: any): any => {
@@ -164,4 +164,50 @@ export function useAuth() {
   }, []);
 
   return { user, loading };
+}
+
+// =========================================
+// Custom Links Hooks
+// =========================================
+export function useCustomLinks() {
+  const [links, setLinks] = useState<CustomPaymentLink[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'customLinks'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...convertTimestamps(doc.data())
+      })) as CustomPaymentLink[];
+      setLinks(data);
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  return { links, loading };
+}
+
+export function useCustomLink(linkId?: string) {
+  const [link, setLink] = useState<CustomPaymentLink | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!linkId) {
+      setLoading(false);
+      return;
+    }
+    const unsub = onSnapshot(doc(db, 'customLinks', linkId), (docSnap) => {
+      if (docSnap.exists()) {
+        setLink({ id: docSnap.id, ...convertTimestamps(docSnap.data()) } as CustomPaymentLink);
+      } else {
+        setLink(null);
+      }
+      setLoading(false);
+    });
+    return unsub;
+  }, [linkId]);
+
+  return { link, loading };
 }

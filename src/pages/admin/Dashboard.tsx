@@ -4,19 +4,19 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, BookOpen, Grid3x3, Image, Download, DollarSign,
   Bell, Settings, LogOut, ChevronDown, Plus, Eye, EyeOff,
-  Printer, Calendar, TrendingUp, Users, Package, Trash2, Menu, X
+  Printer, Calendar, TrendingUp, Users, Package, Trash2, Menu, X, ExternalLink
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { useActiveEdition, useSlots, usePricing, useNotifications, useSettings, useClients, useAuth } from '../../hooks/useFirebase';
-import { doc, updateDoc, deleteField } from 'firebase/firestore';
+import { useActiveEdition, useSlots, usePricing, useNotifications, useSettings, useClients, useAuth, useCustomLinks } from '../../hooks/useFirebase';
+import { doc, updateDoc, deleteField, addDoc, collection } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { db, auth } from '../../lib/firebase';
 import { SLOT_DIMENSIONS } from '../../types';
 import type { SlotSize, PricingConfig, Slot, Notification, ClientRecord } from '../../types';
 
-type AdminView = 'overview' | 'editions' | 'slots' | 'materials' | 'pricing' | 'export' | 'clients';
+type AdminView = 'overview' | 'editions' | 'slots' | 'materials' | 'pricing' | 'export' | 'clients' | 'customLinks';
 
 function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -129,6 +129,7 @@ function AdminDashboardContent() {
   const { notifications, loading: loadingNotifs } = useNotifications();
   const { settings, loading: loadingSettings } = useSettings();
   const { clients, loading: loadingClients } = useClients();
+  const { links, loading: loadingLinks } = useCustomLinks();
 
   const [currentView, setCurrentView] = useState<AdminView>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -149,7 +150,7 @@ function AdminDashboardContent() {
 
   const displayShowSoldAds = optimisticShowSoldAds !== null ? optimisticShowSoldAds : settings?.showSoldAds;
 
-  const loading = loadingEd || loadingSlots || loadingPricing || loadingNotifs || loadingSettings || loadingClients;
+  const loading = loadingEd || loadingSlots || loadingPricing || loadingNotifs || loadingSettings || loadingClients || loadingLinks;
 
   if (loading || !edition || !pricing || !settings || !localPricing) {
     return <div className="min-h-screen flex items-center justify-center">Cargando dashboard...</div>;
@@ -164,6 +165,7 @@ function AdminDashboardContent() {
     { key: 'slots', label: 'Espacios', icon: <Grid3x3 size={18} /> },
     { key: 'materials', label: 'Materiales', icon: <Image size={18} /> },
     { key: 'clients', label: 'Clientes', icon: <Users size={18} /> },
+    { key: 'customLinks', label: 'Links de Pago', icon: <ExternalLink size={18} /> },
     { key: 'export', label: 'Exportar', icon: <Download size={18} /> },
   ];
 
@@ -348,6 +350,7 @@ function AdminDashboardContent() {
           {currentView === 'slots' && <SlotsView slots={slots} />}
           {currentView === 'materials' && <MaterialsView slots={soldSlots} />}
           {currentView === 'clients' && <ClientsView clients={clients} />}
+          {currentView === 'customLinks' && <CustomLinksView links={links} edition={edition} />}
           {currentView === 'export' && <ExportView edition={edition} />}
         </div>
       </div>
@@ -533,15 +536,24 @@ function EditionsView({ edition }: { edition: any }) {
   const [formData, setFormData] = useState({ 
     title: edition?.title || '', 
     period: edition?.period || '',
-    printDeadline: edition?.printDeadline ? new Date(edition.printDeadline).toISOString().split('T')[0] : ''
+    printDeadline: edition?.printDeadline ? new Date(edition.printDeadline).toISOString().split('T')[0] : '',
+    maxSlots: edition?.maxSlots || {}
   });
+
+  const handleMaxSlotChange = (size: SlotSize, value: string) => {
+    setFormData({
+      ...formData,
+      maxSlots: { ...formData.maxSlots, [size]: value === '' ? null : Number(value) }
+    });
+  };
 
   const handleSave = async () => {
     try {
       await updateDoc(doc(db, 'editions', edition.id), {
         title: formData.title,
         period: formData.period,
-        printDeadline: new Date(formData.printDeadline)
+        printDeadline: new Date(formData.printDeadline),
+        maxSlots: Object.fromEntries(Object.entries(formData.maxSlots).filter(([_, v]) => v !== null))
       });
       setIsEditing(false);
       alert('Cambios guardados con éxito');
@@ -573,7 +585,27 @@ function EditionsView({ edition }: { edition: any }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Cierre Imprenta</label>
               <input type="date" className="w-full p-2 border border-gray-300 rounded-[var(--radius-sm)] outline-none focus:ring-2 focus:ring-teal" value={formData.printDeadline} onChange={e => setFormData({...formData, printDeadline: e.target.value})} />
             </div>
-            <div className="flex gap-3 mt-6">
+
+            <div className="pt-4 border-t mt-4">
+              <h4 className="font-bold text-gray-900 mb-3">Límites de Inventario (Opcional)</h4>
+              <p className="text-xs text-gray-500 mb-4">Dejá en blanco si no querés poner límite, o poné 0 para marcar como agotado.</p>
+              <div className="grid grid-cols-2 gap-3">
+                {(Object.keys(SLOT_DIMENSIONS) as SlotSize[]).map(size => (
+                  <div key={size} className="flex flex-col">
+                    <label className="text-xs text-gray-600 mb-1">{SLOT_DIMENSIONS[size].label}</label>
+                    <input 
+                      type="number" 
+                      placeholder="Sin límite"
+                      value={formData.maxSlots[size] ?? ''} 
+                      onChange={e => handleMaxSlotChange(size, e.target.value)} 
+                      className="w-full p-2 text-sm border border-gray-300 rounded-[var(--radius-sm)] outline-none focus:ring-2 focus:ring-teal" 
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6 pt-4 border-t">
               <Button onClick={handleSave} size="sm">Guardar Cambios</Button>
               <Button onClick={() => setIsEditing(false)} variant="outline" size="sm">Cancelar</Button>
             </div>
@@ -935,6 +967,99 @@ function ClientsView({ clients }: { clients: ClientRecord[] }) {
                   </tr>
                 ))
               )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// =========================================
+// Custom Links View
+// =========================================
+function CustomLinksView({ links, edition }: any) {
+  const [formData, setFormData] = useState({ clientName: '', slotSize: 'quarter', customPrice: '' });
+  const [loading, setLoading] = useState(false);
+
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await addDoc(collection(db, 'customLinks'), {
+        editionId: edition.id,
+        slotSize: formData.slotSize,
+        customPrice: Number(formData.customPrice),
+        clientName: formData.clientName,
+        status: 'active',
+        createdAt: new Date()
+      });
+      setFormData({ clientName: '', slotSize: 'quarter', customPrice: '' });
+      alert('Link generado exitosamente');
+    } catch(err) {
+      alert('Error generando link');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <h2 className="text-lg font-bold text-gray-900">Links de Pago Personalizados</h2>
+      
+      <Card>
+        <h3 className="text-md font-semibold mb-4">Generar Nuevo Link</h3>
+        <form onSubmit={handleGenerate} className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cliente / Referencia</label>
+            <input type="text" required value={formData.clientName} onChange={e => setFormData({...formData, clientName: e.target.value})} className="w-full p-2 border border-gray-300 rounded-[var(--radius-sm)] focus:ring-teal focus:border-teal outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tamaño</label>
+            <select required value={formData.slotSize} onChange={e => setFormData({...formData, slotSize: e.target.value})} className="w-full p-2 border border-gray-300 rounded-[var(--radius-sm)] focus:ring-teal focus:border-teal outline-none bg-white">
+              {(Object.keys(SLOT_DIMENSIONS) as SlotSize[]).map(s => (
+                <option key={s} value={s}>{SLOT_DIMENSIONS[s].label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Precio Acordado ($)</label>
+            <input type="number" required value={formData.customPrice} onChange={e => setFormData({...formData, customPrice: e.target.value})} className="w-full p-2 border border-gray-300 rounded-[var(--radius-sm)] focus:ring-teal focus:border-teal outline-none" />
+          </div>
+          <div className="flex items-end">
+            <Button type="submit" loading={loading} className="w-full">Generar Link</Button>
+          </div>
+        </form>
+      </Card>
+
+      <Card>
+        <h3 className="text-md font-semibold mb-4">Links Activos e Historial</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b">
+                <th className="py-2">Cliente</th>
+                <th className="py-2">Espacio</th>
+                <th className="py-2">Precio</th>
+                <th className="py-2">Estado</th>
+                <th className="py-2">Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              {links.map((l: any) => (
+                <tr key={l.id} className="border-b border-gray-50">
+                  <td className="py-2">{l.clientName}</td>
+                  <td className="py-2">{SLOT_DIMENSIONS[l.slotSize as SlotSize]?.label}</td>
+                  <td className="py-2">${l.customPrice.toLocaleString('es-AR')}</td>
+                  <td className="py-2">
+                    <Badge variant={l.status === 'active' ? 'teal' : 'gray'}>{l.status === 'active' ? 'Activo' : 'Usado'}</Badge>
+                  </td>
+                  <td className="py-2">
+                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/pago/${l.id}`); alert('Link copiado!'); }} className="text-teal hover:underline font-medium text-xs flex items-center gap-1">
+                      <ExternalLink size={12} /> Copiar Link
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

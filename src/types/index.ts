@@ -47,6 +47,7 @@ export interface Edition {
   createdAt: Date;
   updatedAt: Date;
   coverImageUrl?: string;
+  maxSlots?: Partial<Record<SlotSize, number>>;
 }
 
 // --- Slot ---
@@ -121,6 +122,17 @@ export interface Payment {
   clientEmail: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// --- Custom Payment Links ---
+export interface CustomPaymentLink {
+  id: string;
+  editionId: string;
+  slotSize: SlotSize;
+  customPrice: number;
+  clientName: string;
+  status: 'active' | 'used';
+  createdAt: Date;
 }
 
 // --- Notification ---

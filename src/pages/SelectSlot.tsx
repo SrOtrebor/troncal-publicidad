@@ -5,13 +5,14 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { SLOT_DIMENSIONS } from '../types';
 import type { SlotSize } from '../types';
-import { useActiveEdition, usePricing } from '../hooks/useFirebase';
+import { useActiveEdition, usePricing, useSlots } from '../hooks/useFirebase';
 
 export default function SelectSlot() {
   const { edition, loading: loadingEd } = useActiveEdition();
   const { pricing, loading: loadingPricing } = usePricing();
+  const { slots, loading: loadingSlots } = useSlots(edition?.id);
 
-  const loading = loadingEd || loadingPricing;
+  const loading = loadingEd || loadingPricing || loadingSlots;
 
   if (loading || !edition || !pricing) {
     return (
@@ -54,7 +55,10 @@ export default function SelectSlot() {
           {displayOrder.map((size, i) => {
             const dim = SLOT_DIMENSIONS[size];
             const price = pricing[size];
-            // Si el precio es 0, probablemente no esté configurado, pero lo mostramos igual
+            const limit = edition.maxSlots?.[size];
+            const soldOrReserved = slots.filter(s => s.size === size && (s.status === 'sold' || s.status === 'reserved')).length;
+            const remaining = limit !== undefined ? limit - soldOrReserved : null;
+            const isSoldOut = remaining !== null && remaining <= 0;
             
             return (
               <motion.div
@@ -77,7 +81,14 @@ export default function SelectSlot() {
                     </div>
                   </div>
 
-                  <h3 className="text-lg font-bold text-gray-900">{dim.label}</h3>
+                  <div className="flex justify-between items-start">
+                    <h3 className="text-lg font-bold text-gray-900">{dim.label}</h3>
+                    {remaining !== null && (
+                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${isSoldOut ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-teal-50 text-teal-700 border border-teal-200'}`}>
+                        {isSoldOut ? 'AGOTADO' : `Quedan ${remaining}`}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400 mt-1">
                     Espacio estimado: {dim.width} × {dim.height} cm
                   </p>
@@ -104,15 +115,23 @@ export default function SelectSlot() {
                     </li>
                   </ul>
 
-                  <Link to={`/checkout/${size}`} className="block mt-auto">
-                    <Button
-                      variant="primary"
-                      className="w-full"
-                      icon={<ArrowRight size={16} />}
-                    >
-                      Contratar
-                    </Button>
-                  </Link>
+                  {isSoldOut ? (
+                    <div className="block mt-auto">
+                      <Button variant="secondary" className="w-full opacity-50 cursor-not-allowed text-red-500 border-red-200 bg-red-50 hover:bg-red-50">
+                        Agotado
+                      </Button>
+                    </div>
+                  ) : (
+                    <Link to={`/checkout/${size}`} className="block mt-auto">
+                      <Button
+                        variant="primary"
+                        className="w-full"
+                        icon={<ArrowRight size={16} />}
+                      >
+                        Contratar
+                      </Button>
+                    </Link>
+                  )}
                 </Card>
               </motion.div>
             );
