@@ -1,44 +1,65 @@
-# La Troncal Publicidad - Panel y Landing Page
+# La Troncal - Plataforma de Publicidad
 
-Plataforma integral para gestión de espacios publicitarios de "La Troncal - Guía Comercial Ruta 27".
+Plataforma de autogestión de espacios publicitarios para la revista **La Troncal**. Permite a los anunciantes explorar las diferentes dimensiones disponibles, visualizar costos en tiempo real y contratar directamente la pauta publicitaria.
 
-## Resumen de Funcionalidades Implementadas
+## 🚀 Características Principales
 
-A lo largo del proyecto, se han integrado y mejorado múltiples características tanto en la interfaz orientada a clientes (Landing Page) como en el panel de administración.
+### Para los Anunciantes (Clientes)
+- **Catálogo de Espacios**: Visualización interactiva de tamaños de avisos publicitarios con previsualizaciones gráficas.
+- **Precios Transparentes**: Costos calculados dinámicamente según la edición actual.
+- **Flujo de Contratación (Checkout)**: Sistema paso a paso que recopila datos fiscales, información de contacto y métodos de pago (transferencia o Mercado Pago).
+- **Subida de Materiales**: Capacidad para que el cliente cargue su propia pieza gráfica (.pdf, .jpg, etc) y defina el enlace (URL, WhatsApp, Instagram) que se vinculará en la versión digital.
 
-### 1. Landing Page y Experiencia de Usuario (Front-end)
-*   **Rebranding y Textos**:
-    *   Se adaptó la comunicación para referirse al producto como **"Guía"** en lugar de "revista".
-    *   Actualización de llamados a la acción, reemplazando contadores estáticos (ej. "5 espacios libres") por textos dinámicos ("Espacios disponibles").
-    *   Se agregó la aclaración de que "Los precios son sin IVA (+ IVA 2.5%). ¡Aprovechá nuestra promoción por 3 meses!".
-*   **Propuesta de Valor (6 Formatos por 1)**:
-    *   Se reemplazó la clásica galería de flyers por una **sección dinámica e integrada al diseño** que lista los 6 beneficios de publicitar: Aviso Impreso, Guía Digital, Reposteo en Redes, Publinota, Entrevista radial (Camino Emprendedor) y Eventos Exclusivos.
-*   **Alcance Hiperlocal**:
-    *   Se detalló el alcance estratégico mencionando zonas clave con alto poder de consumo: *Nordelta, Villanueva, Bancalari, Maschwitz y Puertos*.
-*   **Enlaces y Redes**:
-    *   Integración del Linktree oficial en la comunicación ([linktr.ee/LatroncaldeNordelta](https://linktr.ee/LatroncaldeNordelta)).
+### Para el Administrador (Dashboard)
+- **Gestión de Ediciones**: Creación y edición de las revistas bimestrales, definiendo las fechas de cierre de imprenta.
+- **Control de Inventario**: Permite establecer cupos o límites de cantidad para cada tamaño de espacio (ej: solo 4 medias páginas). Notificación automática de "Agotado".
+- **Precios Dinámicos**: Herramienta para modificar el costo de cada tipo de espacio publicitario en segundos.
+- **Links de Pago Personalizados**: Opción de generar links únicos de pago con un precio o descuento cerrado previamente por WhatsApp con un anunciante, salteando el catálogo público.
+- **Gestión de Clientes y Materiales**: Panel para descargar los comprobantes de pago y piezas gráficas suministradas por los compradores.
 
-### 2. Panel de Administración (Back-office)
-*   **Ampliación de Formatos Publicitarios**:
-    *   Se añadieron 4 nuevas categorías de espacios destacados: `retiro de tapa` (página entera), `índice` (media página), `retiro de contratapa` (página entera) y `contratapa` (página entera).
-*   **Configuración de Precios Dinámica**:
-    *   El módulo de "Configuración de Precios" del administrador ahora detecta automáticamente estas nuevas 4 columnas de valores, permitiendo editarlas en tiempo real desde la plataforma.
-*   **Gestión de Ediciones (Edición de metadatos)**:
-    *   Se implementó la funcionalidad en el botón "Editar" dentro del listado de ediciones.
-    *   Los administradores pueden modificar directamente el *Título*, el *Bimestre (Periodo)* y la *Fecha de Cierre de Imprenta* de la edición actual mediante un formulario en pantalla.
+## 🛠 Stack Tecnológico
 
-### 3. Base de Datos y Despliegue
-*   Actualización de la metadata estática y estructuración de los tipos (`types/index.ts`).
-*   Despliegues continuos y exitosos a Firebase Hosting.
-*   Sincronización con el repositorio de Git en GitHub.
+- **Frontend**: React (con Vite), TypeScript.
+- **Estilos y UI**: Tailwind CSS, Framer Motion (para animaciones), Lucide React (íconos).
+- **Base de Datos**: Firebase Firestore.
+- **Autenticación**: Firebase Auth.
+- **Almacenamiento**: Firebase Storage (para comprobantes y gráficas).
+- **Backend / Lógica de Pago**: Firebase Cloud Functions.
+- **Hosting**: Firebase Hosting.
+
+## ⚙️ Estructura de la Base de Datos (Firestore)
+
+- `editions`: Registra las revistas bimestrales, sus fechas límite e inventario de espacios (`maxSlots`).
+- `config`: Contiene documentos globales como `pricing` y `settings`.
+- `slots`: Representa cada espacio vendido o creado.
+- `customLinks`: Almacena los links de pago únicos creados por el administrador.
+- `clients`: Historial de anunciantes y compras realizadas.
+- `notifications`: Notificaciones internas para el dashboard del administrador.
+
+## 💻 Instalación y Desarrollo Local
+
+1. Clonar el repositorio.
+2. Instalar las dependencias con NPM:
+   ```bash
+   npm install
+   ```
+3. Levantar el entorno de desarrollo:
+   ```bash
+   npm run dev
+   ```
+
+## 🚀 Despliegue (Producción)
+
+La aplicación está conectada directamente con **Firebase Hosting**. Para publicar nuevos cambios de código:
+
+1. Compilar el proyecto para producción:
+   ```bash
+   npm run build
+   ```
+2. Desplegar los cambios (Hosting y Reglas de Firestore):
+   ```bash
+   npx firebase deploy
+   ```
 
 ---
-
-### Tecnologías Utilizadas
-*   React + TypeScript
-*   Vite (Build Tool)
-*   Tailwind CSS (Estilos y Diseño UI)
-*   Framer Motion (Animaciones)
-*   Firebase (Hosting, Firestore Database)
-
-> **Sitio en Producción:** [https://latroncal-publicidad.web.app](https://latroncal-publicidad.web.app)
+*Desarrollado para la revista de Nordelta "La Troncal" por estudioprecinto.com.*
