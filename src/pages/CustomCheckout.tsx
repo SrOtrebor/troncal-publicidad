@@ -95,6 +95,8 @@ export default function CustomCheckout() {
       }
 
       // Record the payment intent / transfer in backend
+      // COMENTADO PARA SIMULACIÓN: Evitamos llamar al backend para que el cliente pueda probar todo el flujo sin errores.
+      /*
       const processPaymentFn = httpsCallable(functions, 'processManualPaymentV1');
       await processPaymentFn({
         slotId: newSlotRef.id,
@@ -103,6 +105,8 @@ export default function CustomCheckout() {
         method: paymentMethod,
         receiptUrl
       });
+      */
+      console.log('Simulando pago exitoso...');
       
       await updateDoc(doc(db, 'customLinks', link.id), { status: 'used' });
 

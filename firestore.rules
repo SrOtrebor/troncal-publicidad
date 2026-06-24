@@ -19,7 +19,14 @@ service cloud.firestore {
     
     match /slots/{slotId} {
       allow read: if true;
-      allow write: if isAdmin(); // Solo admin (o backend Cloud Functions)
+      allow create: if true; // Permitido para CustomCheckout
+      allow update, delete: if isAdmin(); // Solo admin
+    }
+
+    match /customLinks/{linkId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if true; // Permitido para marcar como usado en CustomCheckout
     }
     
     match /clients/{clientId} {

@@ -120,18 +120,8 @@ export default function Landing() {
                         La Troncal
                       </h3>
                       <p className="text-xs text-gray-500 mt-1 text-center px-4">Guía Ruta Comercial 27 edición Agosto 2026</p>
-                      <div className="mt-6 w-full space-y-2">
-                        <div className="h-2 bg-gray-200 rounded-full w-full" />
-                        <div className="h-2 bg-gray-200 rounded-full w-4/5" />
-                        <div className="h-2 bg-gray-200 rounded-full w-3/5" />
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-2 w-full">
-                        <div className="h-20 bg-teal/10 rounded-md border border-teal/20 flex items-center justify-center">
-                          <span className="text-[10px] text-teal font-medium">ESPACIO DISPONIBLE</span>
-                        </div>
-                        <div className="h-20 bg-green/10 rounded-md border border-green/20 flex items-center justify-center">
-                          <span className="text-[10px] text-green font-medium">✓ VENDIDO</span>
-                        </div>
+                      <div className="mt-4 w-full flex-grow flex items-center justify-center overflow-hidden rounded-md border border-gray-100 shadow-sm bg-white">
+                        <img src="/flyer-portada.jpeg" alt="Flyer La Troncal" className="w-full h-full object-cover" />
                       </div>
                       <a href="https://linktr.ee/LatroncaldeNordelta" target="_blank" rel="noopener noreferrer" className="mt-4 w-full bg-teal text-white text-xs font-bold py-2 rounded-md hover:bg-teal-dark transition-colors flex items-center justify-center gap-2">
                         Ver ediciones digitales <ExternalLink size={12} />
